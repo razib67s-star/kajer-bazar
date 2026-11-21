@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">কাজের বাজার</string>
+    <string name="welcome_message">কাজের বাজারে আপনাকে স্বাগতম</string>
+    <string name="welcome_message_en">Welcome to Kajer Bazar</string>
+</resources>
