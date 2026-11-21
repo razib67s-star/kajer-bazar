@@ -119,6 +119,11 @@ revoke execute on function public.force_default_profile_role() from public, anon
 revoke execute on function public.handle_new_auth_user() from public, anon, authenticated;
 revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
 
+-- These functions are invoked by database triggers, not directly by API clients.
+revoke execute on function public.force_default_profile_role() from public, anon, authenticated;
+revoke execute on function public.handle_new_auth_user() from public, anon, authenticated;
+revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.jobs enable row level security;
 alter table public.applications enable row level security;
