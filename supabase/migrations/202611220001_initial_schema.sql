@@ -117,7 +117,6 @@ for each row execute function public.set_updated_at();
 -- These functions are invoked by database triggers, not directly by API clients.
 revoke execute on function public.force_default_profile_role() from public, anon, authenticated;
 revoke execute on function public.handle_new_auth_user() from public, anon, authenticated;
-revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
 
 -- These functions are invoked by database triggers, not directly by API clients.
 revoke execute on function public.force_default_profile_role() from public, anon, authenticated;
