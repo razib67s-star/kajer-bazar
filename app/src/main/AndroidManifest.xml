@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:label="কাজের বাজার"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
