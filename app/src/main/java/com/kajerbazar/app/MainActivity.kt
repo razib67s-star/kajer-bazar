@@ -9,10 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-private val Blue = androidx.compose.ui.graphics.Color(0xFF145DA0)
+private val Blue = Color(0xFF145DA0)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,8 +27,6 @@ class MainActivity : ComponentActivity() {
 fun KajerBazarApp() {
     var selected by remember { mutableStateOf("সব কাজ") }
     var showLogin by remember { mutableStateOf(false) }
-    var loginMethod by remember { mutableStateOf("মোবাইল নম্বর") }
-    var loginValue by remember { mutableStateOf("") }
     val categories = listOf("সব কাজ", "বাসার কাজ", "ডেলিভারি", "দোকানের কাজ", "অন্যান্য")
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
@@ -42,12 +41,12 @@ fun KajerBazarApp() {
                     },
                     actions = {
                         TextButton(onClick = { showLogin = true }) {
-                            Text("লগইন", color = androidx.compose.ui.graphics.Color.White)
+                            Text("লগইন", color = Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Blue,
-                        titleContentColor = androidx.compose.ui.graphics.Color.White
+                        titleContentColor = Color.White
                     )
                 )
             }
@@ -56,6 +55,15 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text("নিরাপত্তা সতর্কতা", fontWeight = FontWeight.Bold, color = Color(0xFF8A4B08))
+                            Spacer(Modifier.height(4.dp))
+                            Text("এটি এখন পরীক্ষামূলক নমুনা অ্যাপ। এখানে এখনো আসল চাকরি, লগইন বা নিয়োগদাতা যাচাই চালু হয়নি। কাউকে OTP, পাসওয়ার্ড, ব্যাংক তথ্য বা অগ্রিম টাকা দেবেন না।")
+                        }
+                    }
+                }
                 item {
                     Text("আপনার পছন্দের কাজ খুঁজুন", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold)
@@ -84,24 +92,24 @@ fun KajerBazarApp() {
                     Card(colors = CardDefaults.cardColors(containerColor = Blue.copy(alpha = 0.08f))) {
                         Column(Modifier.padding(16.dp)) {
                             Text("আপনি কি কাজ দিতে চান?", fontWeight = FontWeight.Bold)
-                            Text("আপনার কাজের বিজ্ঞাপন তৈরি করার সুবিধা শিগগিরই যোগ হবে।")
+                            Text("কাজের বিজ্ঞাপন প্রকাশের সুবিধা এখনো চালু হয়নি।")
                             Spacer(Modifier.height(8.dp))
                             Button(onClick = {}, enabled = false) { Text("কাজের বিজ্ঞাপন দিন") }
                         }
                     }
                 }
-                item { Text("সাম্প্রতিক কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+                item { Text("সাম্প্রতিক নমুনা কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                 items(listOf("দোকানের সহকারী প্রয়োজন", "বাসার জন্য পরিচ্ছন্নতাকর্মী", "পণ্য ডেলিভারি কর্মী")) { job ->
                     Card {
                         Column(Modifier.padding(16.dp)) {
                             Text(job, fontWeight = FontWeight.SemiBold)
-                            Text("বেতন ও যোগাযোগের তথ্য শিগগিরই যুক্ত হবে。",
+                            Text("এগুলো শুধু নমুনা বিজ্ঞাপন; বাস্তব চাকরির অফার নয়।",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
                 item {
-                    Text("নোট: এটি প্রাথমিক অ্যাপের নমুনা। লগইন যাচাই, বিজ্ঞাপন প্রকাশ, পেমেন্ট ও কমিশনের ব্যবস্থা ধাপে ধাপে যুক্ত হবে।",
+                    Text("নিরাপত্তা: যাচাই না করা চাকরির প্রস্তাবে টাকা পাঠাবেন না। সন্দেহ হলে ব্যক্তিগত তথ্য দেবেন না।",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -110,50 +118,12 @@ fun KajerBazarApp() {
         if (showLogin) {
             AlertDialog(
                 onDismissRequest = { showLogin = false },
-                title = { Text("কাজের বাজারে লগইন / নিবন্ধন") },
+                title = { Text("লগইন এখনো চালু হয়নি") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("আপনার পছন্দের পদ্ধতি বেছে নিন:")
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(
-                                selected = loginMethod == "মোবাইল নম্বর",
-                                onClick = {
-                                    loginMethod = "মোবাইল নম্বর"
-                                    loginValue = ""
-                                },
-                                label = { Text("মোবাইল") }
-                            )
-                            FilterChip(
-                                selected = loginMethod == "Gmail",
-                                onClick = {
-                                    loginMethod = "Gmail"
-                                    loginValue = ""
-                                },
-                                label = { Text("Gmail") }
-                            )
-                        }
-                        OutlinedTextField(
-                            value = loginValue,
-                            onValueChange = { loginValue = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            label = { Text(if (loginMethod == "মোবাইল নম্বর") "মোবাইল নম্বর" else "Gmail ঠিকানা") },
-                            placeholder = { Text(if (loginMethod == "মোবাইল নম্বর") "01XXXXXXXXX" else "name@gmail.com") }
-                        )
-                        Text(
-                            "নিরাপদ OTP ও Google যাচাইকরণ চালু করার কাজ বাকি আছে। Firebase সংযোগের পর লগইন সম্পূর্ণ কাজ করবে।",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    Text("আপনার মোবাইল নম্বর বা Gmail এখানে লিখবেন না। নিরাপদ OTP ও Google যাচাইকরণ ব্যবস্থা তৈরি ও পরীক্ষা না হওয়া পর্যন্ত অ্যাকাউন্ট খোলা যাবে না।")
                 },
                 confirmButton = {
-                    TextButton(onClick = { showLogin = false }) { Text("বন্ধ করুন") }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        loginMethod = "মোবাইল নম্বর"
-                        loginValue = ""
-                    }) { Text("মুছুন") }
+                    TextButton(onClick = { showLogin = false }) { Text("বুঝেছি") }
                 }
             )
         }
