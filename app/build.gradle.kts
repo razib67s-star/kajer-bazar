@@ -15,6 +15,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "SUPABASE_URL", "\"https://pdofivhvnofjhozjudji.supabase.co\"")
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_tNW2_Msxl5Hv1vH0iFOvgw__YO8gvBP\"")
     }
 
     compileOptions {
@@ -26,7 +28,10 @@ android {
         jvmTarget = "17"
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 }
 
 dependencies {
