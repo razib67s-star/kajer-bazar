@@ -37,6 +37,24 @@ create trigger profiles_force_default_role
 before insert on public.profiles
 for each row execute function public.force_default_profile_role();
 
+-- Create a minimal profile automatically after Supabase Auth creates an account.
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  insert into public.profiles (id, full_name)
+  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', ''));
+  return new;
+end;
+$;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_auth_user();
+
 create table public.jobs (
   id uuid primary key default gen_random_uuid(),
   employer_id uuid not null references public.profiles(id) on delete restrict,
@@ -136,7 +154,10 @@ using (
     where p.id = (select auth.uid()) and p.role = 'employer'
   )
 )
-with check (employer_id = (select auth.uid()));
+with check (
+  employer_id = (select auth.uid())
+  and status in ('draft', 'paused')
+);
 
 -- Workers may submit an application only for a published job and only as themselves.
 create policy "workers apply to published jobs" on public.applications
