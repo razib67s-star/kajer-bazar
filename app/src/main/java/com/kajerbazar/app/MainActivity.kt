@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,10 +25,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KajerBazarApp() {
     var selected by remember { mutableStateOf("সব কাজ") }
+    var showLogin by remember { mutableStateOf(false) }
+    var loginMethod by remember { mutableStateOf("মোবাইল নম্বর") }
+    var loginValue by remember { mutableStateOf("") }
     val categories = listOf("সব কাজ", "বাসার কাজ", "ডেলিভারি", "দোকানের কাজ", "অন্যান্য")
-    MaterialTheme(
-        colorScheme = lightColorScheme(primary = Blue, secondary = Blue)
-    ) {
+
+    MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -37,6 +38,11 @@ fun KajerBazarApp() {
                         Column {
                             Text("কাজের বাজার", fontWeight = FontWeight.Bold)
                             Text("কাজ খুঁজুন, কাজ দিন", style = MaterialTheme.typography.labelSmall)
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = { showLogin = true }) {
+                            Text("লগইন", color = androidx.compose.ui.graphics.Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -89,16 +95,67 @@ fun KajerBazarApp() {
                     Card {
                         Column(Modifier.padding(16.dp)) {
                             Text(job, fontWeight = FontWeight.SemiBold)
-                            Text("বেতন ও যোগাযোগের তথ্য শিগগিরই যুক্ত হবে।",
+                            Text("বেতন ও যোগাযোগের তথ্য শিগগিরই যুক্ত হবে。",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
                 item {
-                    Text("নোট: এটি প্রাথমিক অ্যাপের নমুনা। লগইন, বিজ্ঞাপন প্রকাশ, পেমেন্ট ও কমিশনের ব্যবস্থা পরের ধাপে যুক্ত করতে হবে।",
+                    Text("নোট: এটি প্রাথমিক অ্যাপের নমুনা। লগইন যাচাই, বিজ্ঞাপন প্রকাশ, পেমেন্ট ও কমিশনের ব্যবস্থা ধাপে ধাপে যুক্ত হবে।",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
+        }
+
+        if (showLogin) {
+            AlertDialog(
+                onDismissRequest = { showLogin = false },
+                title = { Text("কাজের বাজারে লগইন / নিবন্ধন") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("আপনার পছন্দের পদ্ধতি বেছে নিন:")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = loginMethod == "মোবাইল নম্বর",
+                                onClick = {
+                                    loginMethod = "মোবাইল নম্বর"
+                                    loginValue = ""
+                                },
+                                label = { Text("মোবাইল") }
+                            )
+                            FilterChip(
+                                selected = loginMethod == "Gmail",
+                                onClick = {
+                                    loginMethod = "Gmail"
+                                    loginValue = ""
+                                },
+                                label = { Text("Gmail") }
+                            )
+                        }
+                        OutlinedTextField(
+                            value = loginValue,
+                            onValueChange = { loginValue = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text(if (loginMethod == "মোবাইল নম্বর") "মোবাইল নম্বর" else "Gmail ঠিকানা") },
+                            placeholder = { Text(if (loginMethod == "মোবাইল নম্বর") "01XXXXXXXXX" else "name@gmail.com") }
+                        )
+                        Text(
+                            "নিরাপদ OTP ও Google যাচাইকরণ চালু করার কাজ বাকি আছে। Firebase সংযোগের পর লগইন সম্পূর্ণ কাজ করবে।",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLogin = false }) { Text("বন্ধ করুন") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        loginMethod = "মোবাইল নম্বর"
+                        loginValue = ""
+                    }) { Text("মুছুন") }
+                }
+            )
         }
     }
 }
