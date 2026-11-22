@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val Blue = Color(0xFF145DA0)
@@ -31,9 +31,16 @@ fun KajerBazarApp() {
     LaunchedEffect(Unit) {
         connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
     }
-    var selected by remember { mutableStateOf("সব কাজ") }
     var showLogin by remember { mutableStateOf(false) }
-    val categories = listOf("সব কাজ", "বাসার কাজ", "ডেলিভারি", "দোকানের কাজ", "অন্যান্য")
+    var phone by remember { mutableStateOf("") }
+    var otp by remember { mutableStateOf("") }
+    var otpSent by remember { mutableStateOf(false) }
+    var pendingPhone by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var authMessage by remember { mutableStateOf("") }
+    var signedInPhone by remember { mutableStateOf<String?>(null) }
+    var accessToken by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
         Scaffold(
@@ -47,13 +54,10 @@ fun KajerBazarApp() {
                     },
                     actions = {
                         TextButton(onClick = { showLogin = true }) {
-                            Text("লগইন", color = Color.White)
+                            Text(if (signedInPhone == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Blue,
-                        titleContentColor = Color.White
-                    )
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Blue, titleContentColor = Color.White)
                 )
             }
         ) { padding ->
@@ -62,78 +66,112 @@ fun KajerBazarApp() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
-                    Card {
-                        Text(connectionStatus, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
-                    }
+                    Card { Text(connectionStatus, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall) }
                 }
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
                         Column(Modifier.padding(14.dp)) {
-                            Text("নিরাপত্তা সতর্কতা", fontWeight = FontWeight.Bold, color = Color(0xFF8A4B08))
-                            Spacer(Modifier.height(4.dp))
-                            Text("এটি এখন পরীক্ষামূলক নমুনা অ্যাপ। এখানে এখনো আসল চাকরি, লগইন বা নিয়োগদাতা যাচাই চালু হয়নি। কাউকে OTP, পাসওয়ার্ড, ব্যাংক তথ্য বা অগ্রিম টাকা দেবেন না।")
+                            Text("পরীক্ষামূলক সংস্করণ", fontWeight = FontWeight.Bold, color = Color(0xFF8A4B08))
+                            Text("মোবাইল OTP লগইন সংযুক্ত করা হয়েছে। SMS পাঠাতে Supabase-এ Phone Auth ও SMS Provider সক্রিয় থাকতে হবে।")
+                            Text("বাস্তব কাজের তালিকা ও আবেদন ব্যবস্থা এখনো সংযুক্ত করা বাকি।")
                         }
                     }
                 }
                 item {
-                    Text("আপনার পছন্দের কাজ খুঁজুন", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        readOnly = true,
-                        placeholder = { Text("কাজ বা এলাকার নাম লিখুন") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                item {
-                    Text("কাজের ধরন", fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        categories.take(3).forEach { category ->
-                            FilterChip(
-                                selected = selected == category,
-                                onClick = { selected = category },
-                                label = { Text(category) }
-                            )
-                        }
-                    }
-                }
-                item {
-                    Card(colors = CardDefaults.cardColors(containerColor = Blue.copy(alpha = 0.08f))) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("আপনি কি কাজ দিতে চান?", fontWeight = FontWeight.Bold)
-                            Text("কাজের বিজ্ঞাপন প্রকাশের সুবিধা এখনো চালু হয়নি।")
-                            Spacer(Modifier.height(8.dp))
-                            Button(onClick = {}, enabled = false) { Text("কাজের বিজ্ঞাপন দিন") }
-                        }
+                    Text("কাজের বাজারে স্বাগতম", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("বাংলাদেশের কর্মী ও কাজদাতাদের জন্য একটি নিরাপদ কাজের প্ল্যাটফর্ম।")
+                    Spacer(Modifier.height(4.dp))
+                    Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (signedInPhone == null) "মোবাইল নম্বর দিয়ে শুরু করুন" else "লগইন তথ্য দেখুন")
                     }
                 }
                 item { PaymentScreen() }
-                item { Text("সাম্প্রতিক নমুনা কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-                items(listOf("দোকানের সহকারী প্রয়োজন", "বাসার জন্য পরিচ্ছন্নতাকর্মী", "পণ্য ডেলিভারি কর্মী")) { job ->
-                    Card {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(job, fontWeight = FontWeight.SemiBold)
-                            Text("এগুলো শুধু নমুনা বিজ্ঞাপন; বাস্তব চাকরির অফার নয়.", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
                 item {
-                    Text("নিরাপত্তা: যাচাই না করা চাকরির প্রস্তাবে টাকা পাঠাবেন না। সন্দেহ হলে ব্যক্তিগত তথ্য দেবেন না।",
-                        style = MaterialTheme.typography.bodySmall)
+                    Text("নিরাপত্তা নির্দেশনা", fontWeight = FontWeight.Bold)
+                    Text("কাউকে OTP, পাসওয়ার্ড, ব্যাংক তথ্য বা অগ্রিম টাকা দেবেন না। কাজের শর্ত ও পারিশ্রমিক যাচাই করে নিন।")
                 }
             }
         }
 
         if (showLogin) {
             AlertDialog(
-                onDismissRequest = { showLogin = false },
-                title = { Text("লগইন এখনো চালু হয়নি") },
+                onDismissRequest = { if (!busy) showLogin = false },
+                title = { Text(if (signedInPhone != null) "লগইন হয়েছে" else "মোবাইল OTP লগইন") },
                 text = {
-                    Text("আপনার মোবাইল নম্বর বা Gmail এখানে লিখবেন না। নিরাপদ OTP ও Google যাচাইকরণ ব্যবস্থা তৈরি ও পরীক্ষা না হওয়া পর্যন্ত অ্যাকাউন্ট খোলা যাবে না।")
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (signedInPhone != null) {
+                            Text("যাচাইকৃত নম্বর: $signedInPhone")
+                            Text("এই সেশনে নিরাপদ অ্যাক্সেস টোকেন সক্রিয় আছে। অ্যাপ বন্ধ করলে আবার লগইন করতে হবে।")
+                        } else {
+                            OutlinedTextField(
+                                value = phone,
+                                onValueChange = { phone = it },
+                                enabled = !otpSent && !busy,
+                                label = { Text("মোবাইল নম্বর") },
+                                placeholder = { Text("01XXXXXXXXX") },
+                                singleLine = true
+                            )
+                            if (otpSent) {
+                                OutlinedTextField(
+                                    value = otp,
+                                    onValueChange = { otp = it.filter(Char::isDigit).take(8) },
+                                    enabled = !busy,
+                                    label = { Text("SMS OTP কোড") },
+                                    singleLine = true
+                                )
+                            }
+                        }
+                        if (authMessage.isNotBlank()) Text(authMessage, color = if (authMessage.contains("সম্পন্ন")) Color(0xFF18733B) else MaterialTheme.colorScheme.error)
+                    }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showLogin = false }) { Text("বুঝেছি") }
+                    if (signedInPhone != null) {
+                        TextButton(onClick = {
+                            signedInPhone = null
+                            accessToken = null
+                            showLogin = false
+                        }) { Text("লগআউট") }
+                    } else if (!otpSent) {
+                        TextButton(enabled = !busy, onClick = {
+                            busy = true
+                            authMessage = ""
+                            scope.launch {
+                                val result = AuthRepository.sendPhoneOtp(phone)
+                                busy = false
+                                authMessage = result.message
+                                if (result.success) {
+                                    pendingPhone = result.phone.orEmpty()
+                                    otpSent = true
+                                }
+                            }
+                        }) { Text(if (busy) "অপেক্ষা করুন…" else "OTP পাঠান") }
+                    } else {
+                        TextButton(enabled = !busy, onClick = {
+                            busy = true
+                            authMessage = ""
+                            scope.launch {
+                                val result = AuthRepository.verifyPhoneOtp(pendingPhone, otp)
+                                busy = false
+                                authMessage = result.message
+                                if (result.success) {
+                                    signedInPhone = result.phone
+                                    accessToken = result.accessToken
+                                    showLogin = false
+                                    otpSent = false
+                                    otp = ""
+                                }
+                            }
+                        }) { Text(if (busy) "যাচাই হচ্ছে…" else "OTP যাচাই করুন") }
+                    }
+                },
+                dismissButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        if (otpSent && signedInPhone == null) {
+                            otpSent = false
+                            otp = ""
+                            authMessage = ""
+                        } else showLogin = false
+                    }) { Text(if (otpSent && signedInPhone == null) "নম্বর বদলান" else "বন্ধ") }
                 }
             )
         }
