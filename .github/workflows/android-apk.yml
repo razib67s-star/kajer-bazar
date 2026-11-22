@@ -41,6 +41,21 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
 
+      - name: Prepare clearly named APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Kajer-Bazar-Android.apk
+          sha256sum dist/Kajer-Bazar-Android.apk > dist/SHA256SUMS.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Kajer-Bazar-Android-APK
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
       - name: Install and launch APK in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -58,16 +73,3 @@ jobs:
             adb shell pidof com.kajerbazar.app >/dev/null || (echo "App process not running after launch; recent logcat follows"; adb logcat -d -t 3000; exit 1)
             echo "PASS: APK installed and app process remained alive for 15 seconds"
 
-      - name: Prepare clearly named APK
-        run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Kajer-Bazar-Android.apk
-          sha256sum dist/Kajer-Bazar-Android.apk > dist/SHA256SUMS.txt
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: Kajer-Bazar-Android-APK
-          path: dist/*
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
