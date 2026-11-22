@@ -1,27 +1,49 @@
 # কাজের বাজার — Backend সংযোগ নির্দেশিকা
 
-## নির্বাচিত ভিত্তি
-প্রথম backend হিসেবে Supabase (managed PostgreSQL + Auth + Row Level Security) নির্বাচন করা হয়েছে। এতে Android অ্যাপ থেকে সরাসরি ডেটাবেসে অনিরাপদ প্রবেশের বদলে authenticated access ও database policy ব্যবহার করা যাবে।
+## Supabase ভিত্তি
+প্রকল্পটি Supabase PostgreSQL, Auth এবং Row Level Security (RLS) ব্যবহার করে। Android-এ শুধু publishable key ব্যবহৃত হয়; service-role key কখনো অ্যাপে রাখা যাবে না।
 
-## এই commit-এ কী যোগ হয়েছে
-- `supabase/migrations/202611220001_initial_schema.sql`: প্রাথমিক profiles, jobs, applications ও completion_requests schema।
-- Row Level Security (RLS) চালু এবং প্রাথমিক access policy।
-- নতুন অ্যাকাউন্ট ডিফল্টে worker; employer/admin role কেবল trusted admin/server workflow থেকে দিতে হবে।
-- completion request-এ ৩ দিনের response deadline রাখা হয়েছে। সময় পার হলে স্বয়ংক্রিয়ভাবে সম্পন্ন/কমিশন আদায় নয়; পরবর্তী backend job-কে Admin Review-তে পাঠাতে হবে।
+## ইতিমধ্যে Supabase-এ প্রয়োগ করা হয়েছে
+- profiles, jobs, applications, completion_requests এবং payment tables।
+- RLS নীতি এবং worker default role; ক্লায়েন্ট নিজে employer/admin হতে পারে না।
+- Phone Auth OTP-এর পর স্বয়ংক্রিয় profile তৈরি; ফোন নম্বর profile-এ সংরক্ষণের trigger।
+- Employer verification request; admin approval ছাড়া employer role দেওয়া হয় না।
+- Job lifecycle RPC: কাজ review-তে পাঠানো, admin moderation, worker application, application withdraw, worker selection, completion request, employer confirmation/dispute এবং overdue completion Admin Review-তে পাঠানো।
+- Payment order server-side function; বর্তমানে sandbox/pending only এবং টাকা সংগ্রহ করে না।
+- ১০% commission employer-এর কাছ থেকে agreed worker wage-এর অতিরিক্ত; worker পুরো agreed wage পান।
 
-## এখনো চালু হয়নি
-এই SQL ফাইল repository-তে রাখা মানে Supabase project তৈরি বা সংযুক্ত হয়েছে—এমন নয়। এখনো live API, OTP/SMS, notification, admin dashboard বা payment gateway নেই। Completion timeout scheduler ও server-side dispute functions-ও পরের ধাপ।
+## Android অ্যাপে যুক্ত করা হয়েছে
+- বাংলাদেশি মোবাইল নম্বরের OTP request/verification flow।
+- OTP session থেকে authenticated profile ও published jobs পড়া।
+- Worker job application RPC ব্যবহার করে আবেদন করতে পারে।
+- Worker employer হওয়ার আবেদন পাঠাতে পারে।
+- Admin-approved employer draft job তৈরি করে moderation-এ পাঠাতে পারে।
 
-## Supabase project তৈরি করতে যা লাগবে
-১. Supabase-এ নিজের account দিয়ে project তৈরি করুন।
-২. Database region হিসেবে Bangladesh-এর কাছাকাছি উপলভ্য region বেছে নিন।
-৩. SQL Editor-এ migration ফাইলের সম্পূর্ণ SQL চালান, অথবা Supabase CLI দিয়ে migration apply করুন।
-৪. Project URL ও publishable/anon key Android app-এ ব্যবহার করার আগে configuration layer তৈরি ও যাচাই করতে হবে।
-৫. **service_role key, database password, SMS secret বা payment secret Android app, GitHub source, screenshot বা ChatGPT-তে দেবেন না।** এগুলো কেবল secure server/secret manager-এ থাকবে।
+## OTP চালু করতে Supabase Dashboard-এ প্রয়োজনীয় কাজ
+১. Authentication → Sign In / Providers-এ Phone provider enable করুন।
+২. Authentication → SMS Provider-এ অনুমোদিত SMS provider নির্বাচন করুন।
+৩. provider account-এর SMS credentials Supabase Dashboard-এর secret/configuration অংশে দিন; GitHub বা Android app-এ নয়।
+৪. OTP expiry, resend interval এবং rate limit নিরাপদ মানে রাখুন।
+৫. আপনার নিজের নম্বর দিয়ে test করুন; SMS খরচ/দেশভিত্তিক delivery provider অনুযায়ী হবে।
 
-## গুরুত্বপূর্ণ নিরাপত্তা নোট
-- বর্তমান migration একটি প্রাথমিক foundation; production security review-এর বিকল্প নয়।
-- employer role এখনো স্বয়ংক্রিয়ভাবে দেওয়া হয় না; trusted admin verification দরকার।
-- job publishing/moderation-এর পূর্ণ workflow এখনো তৈরি হয়নি।
-- completion confirmation, dispute review, ৩ দিনের reminder/Admin Review এবং ১০% employer-paid commission server-side transaction হিসেবে implement ও test না করা পর্যন্ত payment চালু করা যাবে না।
-- Real payment-এর আগে merchant approval, refund/cancellation policy, audit log ও legal review দরকার।
+এই configuration ChatGPT থেকে করা হয়নি; Supabase Dashboard-এ project owner-কে provider account ও secret দিতে হবে। SMS provider configure না থাকলে Android OTP screen compile হলেও আসল SMS যাবে না।
+
+## Admin প্রস্তুতি
+- প্রথম admin account নিরাপদে Supabase SQL Editor থেকে manually নির্ধারণ করতে হবে। কাউকে admin করার জন্য public signup endpoint নেই।
+- Admin account দিয়ে employer request approve/reject এবং job moderation করার secure database RPC প্রস্তুত।
+- Admin web dashboard এখনো তৈরি হয়নি; review functions database-এ আছে, UI নেই।
+- ৩ দিনের overdue completion-কে Admin Review-তে পাঠানোর function আছে, কিন্তু scheduled invocation/cron এখনো configure হয়নি।
+
+## এখনো বাকি / production-এর আগে
+- Android-এর encrypted session persistence, refresh-token lifecycle ও logout invalidation।
+- Profile edit, ID verification/document upload এবং admin dashboard UI।
+- Admin notification/FCM, report/block, ratings, support and audit UI।
+- Overdue completion scheduler, disputes evidence and admin resolution.
+- OTP provider config and real SMS end-to-end test.
+- Payment gateway merchant onboarding, gateway callbacks/IPN and settlement.
+- Security review, privacy policy, terms, refund/cancellation policy, release signing and device tests.
+
+## নিরাপত্তা
+- Play Protect বা Android Auto Blocker বন্ধ করবেন না।
+- service-role key, database password, SMS secret বা payment secret কখনো APK/GitHub/chat-এ দেবেন না।
+- নতুন account worker হিসেবে শুরু হয়; employer role admin approval ছাড়া দেওয়া হয় না।
