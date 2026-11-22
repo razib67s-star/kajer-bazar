@@ -12,7 +12,7 @@
 - সতর্কবার্তা এলে জোর করে ইনস্টল করবেন না। সঠিক উৎস ও APK যাচাই ছাড়া নিরাপত্তা উপেক্ষা করবেন না।
 
 ## এই বিল্ডের সীমা
-এটি GitHub Actions-এর debug/test APK; Play Store বা জনসাধারণের জন্য স্বাক্ষরিত production release নয়। Build ও APK signature যাচাই সফল হওয়া মানেই Samsung ফোনে ইনস্টল/চালু হওয়া নিশ্চিত নয়। ফোনে বাস্তব ইনস্টল পরীক্ষা এখনও বাকি।
+এটি GitHub Actions-এর debug/test APK; আলাদা package ID `com.kajerbazar.app.test` ব্যবহার করে, যাতে আগের debug-signed `com.kajerbazar.app` ইনস্টলেশনের সঙ্গে signature সংঘাত না হয়। Play Store বা জনসাধারণের জন্য স্বাক্ষরিত production release নয়। Build ও APK signature যাচাই সফল হওয়া মানেই Samsung ফোনে ইনস্টল/চালু হওয়া নিশ্চিত নয়। ফোনে বাস্তব ইনস্টল পরীক্ষা এখনও বাকি।
 
 ## এখনো প্রয়োজনীয় কাজ
 - Supabase Phone Auth ও SMS Provider কনফিগারেশন
