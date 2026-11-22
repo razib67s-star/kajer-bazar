@@ -44,6 +44,8 @@ fun KajerBazarApp() {
     var userId by remember { mutableStateOf<String?>(null) }
     var profile by remember { mutableStateOf<MarketplaceRepository.Profile?>(null) }
     var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
+    var adminJobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
+    var adminEmployerRequests by remember { mutableStateOf<List<MarketplaceRepository.EmployerRequest>>(emptyList()) }
     var jobMessage by remember { mutableStateOf("কাজ দেখতে OTP দিয়ে লগইন করুন।") }
     var showEmployerForm by remember { mutableStateOf(false) }
     var showJobForm by remember { mutableStateOf(false) }
@@ -140,6 +142,76 @@ fun KajerBazarApp() {
                         }
                     }
                 }
+                if (profile?.role == "admin") {
+                    item {
+                        Text("অ্যাডমিন পর্যালোচনা", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Button(onClick = {
+                            val token = accessToken
+                            if (token != null) scope.launch {
+                                val queues = MarketplaceRepository.getAdminQueues(token)
+                                adminJobs = queues.getOrNull()?.first.orEmpty()
+                                adminEmployerRequests = queues.getOrNull()?.second.orEmpty()
+                                jobMessage = if (queues.isSuccess) "পর্যালোচনা তালিকা হালনাগাদ হয়েছে।" else queues.exceptionOrNull()?.message ?: "তালিকা পাওয়া যায়নি।"
+                            }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("পর্যালোচনা তালিকা হালনাগাদ") }
+                    }
+                    item { Text("কাজ অনুমোদন", fontWeight = FontWeight.Bold) }
+                    if (adminJobs.isEmpty()) item { Text("অনুমোদনের অপেক্ষায় কোনো কাজ নেই।") }
+                    items(adminJobs, key = { "admin-job-${it.id}" }) { job ->
+                        Card {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(job.title, fontWeight = FontWeight.Bold)
+                                Text("${job.district} • ৳${job.wagePaisa / 100}")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = {
+                                        val token = accessToken
+                                        if (token != null) scope.launch {
+                                            val result = MarketplaceRepository.adminReviewJob(token, job.id, true)
+                                            jobMessage = if (result.isSuccess) "কাজ অনুমোদিত হয়েছে।" else result.exceptionOrNull()?.message ?: "ব্যর্থ হয়েছে।"
+                                            adminJobs = adminJobs.filterNot { it.id == job.id }
+                                        }
+                                    }) { Text("অনুমোদন") }
+                                    OutlinedButton(onClick = {
+                                        val token = accessToken
+                                        if (token != null) scope.launch {
+                                            val result = MarketplaceRepository.adminReviewJob(token, job.id, false)
+                                            jobMessage = if (result.isSuccess) "কাজ প্রত্যাখ্যান হয়েছে।" else result.exceptionOrNull()?.message ?: "ব্যর্থ হয়েছে।"
+                                            adminJobs = adminJobs.filterNot { it.id == job.id }
+                                        }
+                                    }) { Text("প্রত্যাখ্যান") }
+                                }
+                            }
+                        }
+                    }
+                    item { Text("কাজদাতা হওয়ার আবেদন", fontWeight = FontWeight.Bold) }
+                    if (adminEmployerRequests.isEmpty()) item { Text("অনুমোদনের অপেক্ষায় কোনো কাজদাতা আবেদন নেই।") }
+                    items(adminEmployerRequests, key = { "employer-${it.id}" }) { request ->
+                        Card {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(request.businessName, fontWeight = FontWeight.Bold)
+                                Text("${request.contactName} • ${request.district}, ${request.upazila}")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = {
+                                        val token = accessToken
+                                        if (token != null) scope.launch {
+                                            val result = MarketplaceRepository.adminReviewEmployerRequest(token, request.id, true)
+                                            jobMessage = if (result.isSuccess) "কাজদাতা অনুমোদিত হয়েছে।" else result.exceptionOrNull()?.message ?: "ব্যর্থ হয়েছে।"
+                                            adminEmployerRequests = adminEmployerRequests.filterNot { it.id == request.id }
+                                        }
+                                    }) { Text("অনুমোদন") }
+                                    OutlinedButton(onClick = {
+                                        val token = accessToken
+                                        if (token != null) scope.launch {
+                                            val result = MarketplaceRepository.adminReviewEmployerRequest(token, request.id, false)
+                                            jobMessage = if (result.isSuccess) "কাজদাতা আবেদন প্রত্যাখ্যান হয়েছে।" else result.exceptionOrNull()?.message ?: "ব্যর্থ হয়েছে।"
+                                            adminEmployerRequests = adminEmployerRequests.filterNot { it.id == request.id }
+                                        }
+                                    }) { Text("প্রত্যাখ্যান") }
+                                }
+                            }
+                        }
+                    }
+                }
                 item { Text(jobMessage, style = MaterialTheme.typography.bodySmall) }
                 item { PaymentScreen() }
                 item {
@@ -198,6 +270,11 @@ fun KajerBazarApp() {
                                     profile = profileResult.getOrNull()
                                     val jobResult = MarketplaceRepository.getPublishedJobs(token)
                                     jobs = jobResult.getOrNull().orEmpty()
+                                    if (profile?.role == "admin") {
+                                        val queues = MarketplaceRepository.getAdminQueues(token)
+                                        adminJobs = queues.getOrNull()?.first.orEmpty()
+                                        adminEmployerRequests = queues.getOrNull()?.second.orEmpty()
+                                    }
                                     jobMessage = if (jobResult.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else jobResult.exceptionOrNull()?.message ?: "কাজের তালিকা হালনাগাদ হয়েছে।"
                                 }
                             }
