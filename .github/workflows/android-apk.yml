@@ -48,8 +48,6 @@ jobs:
           arch: x86_64
           profile: pixel_2
           emulator-boot-timeout: 600
-        env:
-          ANDROID_I_WANT_MY_TCG: "yes"
           disable-animations: true
           script: |
             set -e
@@ -63,6 +61,8 @@ jobs:
               exit 1
             fi
             echo "PASS: APK installed and app process remained alive for 15 seconds"
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
 
       - name: Prepare clearly named APK
         run: |
