@@ -76,8 +76,7 @@ fun KajerBazarApp() {
                     }
                 }
                 item {
-                    Text("আপনার পছন্দের কাজ খুঁজুন", style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold)
+                    Text("আপনার পছন্দের কাজ খুঁজুন", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = "",
@@ -109,13 +108,13 @@ fun KajerBazarApp() {
                         }
                     }
                 }
+                item { PaymentScreen() }
                 item { Text("সাম্প্রতিক নমুনা কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                 items(listOf("দোকানের সহকারী প্রয়োজন", "বাসার জন্য পরিচ্ছন্নতাকর্মী", "পণ্য ডেলিভারি কর্মী")) { job ->
                     Card {
                         Column(Modifier.padding(16.dp)) {
                             Text(job, fontWeight = FontWeight.SemiBold)
-                            Text("এগুলো শুধু নমুনা বিজ্ঞাপন; বাস্তব চাকরির অফার নয়।",
-                                style = MaterialTheme.typography.bodySmall)
+                            Text("এগুলো শুধু নমুনা বিজ্ঞাপন; বাস্তব চাকরির অফার নয়.", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
