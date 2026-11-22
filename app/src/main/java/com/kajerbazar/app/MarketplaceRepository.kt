@@ -12,7 +12,7 @@ object MarketplaceRepository {
     data class Profile(val fullName: String, val role: String, val district: String, val upazila: String)
     data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long)
 
-    private fun request(path: String, token: String, method: String = "GET", body: JSONObject? = null): Pair<Int, String> {
+    private fun request(path: String, token: String, method: String = "GET", body: JSONObject? = null, prefer: String = "return=minimal"): Pair<Int, String> {
         val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
         try {
             connection.requestMethod = method
@@ -24,7 +24,7 @@ object MarketplaceRepository {
             if (body != null) {
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")
-                connection.setRequestProperty("Prefer", "return=minimal")
+                connection.setRequestProperty("Prefer", prefer)
                 connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             }
             val status = connection.responseCode
@@ -72,4 +72,44 @@ object MarketplaceRepository {
             if (status !in 200..299) error("আবেদন জমা হয়নি ($status): $response")
         }
     }
+    suspend fun submitEmployerRequest(
+        token: String, businessName: String, contactName: String, district: String, upazila: String, details: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = JSONObject()
+                .put("p_business_name", businessName)
+                .put("p_contact_name", contactName)
+                .put("p_district", district)
+                .put("p_upazila", upazila)
+                .put("p_details", details)
+            val (status, response) = request("/rest/v1/rpc/submit_employer_request", token, "POST", body)
+            if (status !in 200..299) error("কাজদাতা আবেদন জমা হয়নি ($status): $response")
+        }
+    }
+
+    suspend fun createJobForReview(
+        token: String, title: String, description: String, category: String,
+        district: String, upazila: String, wageTaka: Long
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(wageTaka > 0) { "মজুরি শূন্যের বেশি হতে হবে।" }
+            val body = JSONObject()
+                .put("title", title)
+                .put("description", description)
+                .put("category", category)
+                .put("district", district)
+                .put("upazila", upazila)
+                .put("agreed_wage_paisa", wageTaka * 100)
+                .put("status", "draft")
+            val (status, response) = request("/rest/v1/jobs?select=id", token, "POST", body, "return=representation")
+            if (status !in 200..299) error("খসড়া কাজ তৈরি হয়নি ($status): $response")
+            val rows = org.json.JSONArray(response)
+            if (rows.length() == 0) error("সার্ভার কাজের আইডি ফেরত দেয়নি।")
+            val jobId = rows.getJSONObject(0).getString("id")
+            val publishBody = JSONObject().put("p_job_id", jobId)
+            val (publishStatus, publishResponse) = request("/rest/v1/rpc/publish_job_for_review", token, "POST", publishBody)
+            if (publishStatus !in 200..299) error("কাজটি পর্যালোচনার জন্য পাঠানো যায়নি ($publishStatus): $publishResponse")
+        }
+    }
+
 }
