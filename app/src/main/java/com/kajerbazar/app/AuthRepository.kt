@@ -7,7 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object AuthRepository {
-    data class AuthResult(val success: Boolean, val message: String, val accessToken: String? = null, val phone: String? = null)
+    data class AuthResult(val success: Boolean, val message: String, val accessToken: String? = null, val phone: String? = null, val userId: String? = null)
 
     private fun request(path: String, body: JSONObject): Pair<Int, JSONObject> {
         val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
@@ -59,7 +59,7 @@ object AuthRepository {
             val (status, json) = request("/auth/v1/verify", JSONObject().put("phone", phone).put("token", code).put("type", "sms"))
             val token = json.optString("access_token")
             if (status in 200..299 && token.isNotBlank()) {
-                AuthResult(true, "মোবাইল নম্বর যাচাই সম্পন্ন হয়েছে।", accessToken = token, phone = phone)
+                AuthResult(true, "মোবাইল নম্বর যাচাই সম্পন্ন হয়েছে।", accessToken = token, phone = phone, userId = json.optJSONObject("user")?.optString("id"))
             } else {
                 AuthResult(false, when (status) {
                     400, 422 -> "OTP ভুল অথবা মেয়াদ শেষ হয়েছে। নতুন কোড নিন।"
