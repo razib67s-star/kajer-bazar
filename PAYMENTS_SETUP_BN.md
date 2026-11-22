@@ -1,17 +1,31 @@
-# Kajer Bazar পেমেন্ট প্রস্তুতি
+# Kajer Bazar — পেমেন্ট প্রস্তুতি
 
 ## বর্তমান অবস্থা
-- এই পর্যায়ে কোনো লাইভ পেমেন্ট নেওয়া হয় না।
-- payment_orders টেবিলে প্রতিটি পেমেন্ট অর্ডার রাখা হয়।
-- payment_ledger টেবিল ভবিষ্যতের চার্জ, ১০% প্ল্যাটফর্ম কমিশন, কর্মীর পাওনা এবং রিফান্ডের হিসাব রাখার জন্য।
-- সব অর্থ BDT পয়সায় (paisa) সংরক্ষিত হয়।
-- পেমেন্ট রেকর্ডের লেখা/পরিবর্তন শুধু সার্ভার-সাইড থেকে হবে; নিয়মিত ব্যবহারকারী শুধু নিজের সংশ্লিষ্ট অর্ডার ও লেজার দেখতে পারবেন।
-- create-payment-order Edge Function লগইন করা employer-এর মালিকানাধীন কাজ এবং নির্বাচিত worker যাচাই করে শুধু pending sandbox অর্ডার তৈরি করে। এটি টাকা কাটে না এবং অর্ডারকে paid করে না।
+- কোনো লাইভ পেমেন্ট নেওয়া হয় না।
+- payment_orders ও payment_ledger-এ BDT পয়সা হিসেবে হিসাব রাখা হয়।
+- create-payment-order Edge Function যাচাইকৃত employer, নিজের job এবং selected worker application যাচাই করে pending sandbox order তৈরি করে।
+- sandbox order তৈরি মানে টাকা কাটা বা paid হওয়া নয়।
+- payment writes client থেকে বন্ধ; trusted server-side function ব্যবহার করতে হবে।
 
-## অর্ডার তৈরির API
+## অনুমোদিত কমিশন নীতি
+কর্মীর agreed wage থেকে কমিশন কাটা হবে না। নিয়োগকর্তা agreed wage-এর অতিরিক্ত ১০% কমিশন দেবেন।
+
+উদাহরণ:
+- কর্মীর agreed wage: ৳১,০০০
+- নিয়োগকর্তার ১০% কমিশন: ৳১০০
+- নিয়োগকর্তার মোট payable: ৳১,১০০
+- কর্মীর পাওনা: ৳১,০০০
+
+Database fields:
+- amount_paisa = worker agreed wage
+- commission_paisa = employer-paid platform commission
+- employer_total_paisa = wage + commission
+- worker_net_paisa = full agreed wage
+
+## API
 POST /functions/v1/create-payment-order
 
-Header:
+Headers:
 - Authorization: Bearer <user access token>
 - Content-Type: application/json
 
@@ -24,16 +38,12 @@ Body:
 }
 ```
 
-একই idempotency key পুনরায় পাঠালে একই অর্ডার ফেরত দেওয়া হবে (একই employer ও job হলে)।
+## লাইভ চালুর আগে
+1. SSLCOMMERZ বা অন্য অনুমোদিত provider-এর marketplace/collection model লিখিতভাবে অনুমোদন নিতে হবে।
+2. Merchant onboarding ও sandbox credentials সংগ্রহ করতে হবে।
+3. Gateway checkout, success/fail/cancel, IPN/webhook এবং server-side transaction validation তৈরি করতে হবে।
+4. Amount, currency, transaction ID, signature, duplicate callbacks, refund/reconciliation পরীক্ষা করতে হবে।
+5. Worker payout/disbursement এবং escrow/holding আইনগত ও provider policy অনুযায়ী অনুমোদিত কি না যাচাই করতে হবে।
+6. Secret শুধু Supabase Edge Function Secrets-এ থাকবে; Android/GitHub-এ নয়।
 
-## কমিশনের হিসাব
-ডিফল্ট কমিশন ১০% (1000 basis points)। উদাহরণ: কাজের মজুরি ১,০০০ টাকা হলে কমিশন ১০০ টাকা এবং worker net ৯০০ টাকা। এটি কেবল হিসাবের প্রস্তুতি; এখনো কোনো টাকা সংগ্রহ বা বিতরণ হচ্ছে না। কমিশন কে বহন করবে এবং টাকা কীভাবে কর্মীকে দেওয়া হবে—লাইভ চালুর আগে তা চূড়ান্ত করতে হবে।
-
-## লাইভ চালুর আগে যা বাকি
-1. SSLCOMMERZ বা অনুমোদিত পেমেন্ট গেটওয়ের merchant onboarding সম্পন্ন করা।
-2. Sandbox Store ID/Password পাওয়া এবং Supabase Edge Function Secrets-এ নিরাপদে রাখা; কখনো Android অ্যাপ বা GitHub-এ নয়।
-3. Gateway session initiation, success/fail/cancel/IPN এবং server-side transaction validation যুক্ত করা।
-4. একই transaction যেন একাধিকবার settle না হয়—idempotency, amount/currency matching এবং refund/reconciliation পরীক্ষা করা।
-5. Gateway-এর অনুমোদিত settlement/payout model এবং marketplace কমিশন গ্রহণের শর্ত নিশ্চিত করা।
-
-**গুরুত্বপূর্ণ:** browser redirect বা app response দেখে কখনো payment সফল ধরা যাবে না। Gateway-এর server-to-server validation সফল হলেই live payment paid করা যাবে।
+**Redirect বা app-এর response দেখে payment success ধরা যাবে না।** Gateway server-to-server validation ছাড়া কোনো order paid করা যাবে না।
