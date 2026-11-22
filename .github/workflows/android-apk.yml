@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
 
@@ -30,8 +30,8 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build universal debug APK
-        run: gradle --no-daemon clean assembleDebug
+      - name: Build and run unit tests
+        run: gradle --no-daemon clean testDebugUnitTest assembleDebug
 
       - name: Verify APK signature and package
         shell: bash
@@ -47,7 +47,9 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_2
-          emulator-boot-timeout: 300000
+          emulator-boot-timeout: 600
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
           disable-animations: true
           script: |
             set -e
