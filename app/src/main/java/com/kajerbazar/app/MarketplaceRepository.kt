@@ -112,4 +112,44 @@ object MarketplaceRepository {
         }
     }
 
+    data class EmployerRequest(val id: String, val businessName: String, val contactName: String, val district: String, val upazila: String)
+
+    suspend fun getAdminQueues(token: String): Result<Pair<List<Job>, List<EmployerRequest>>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (jobStatus, jobBody) = request("/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa&status=eq.pending_review&order=created_at.asc&limit=100", token)
+            if (jobStatus !in 200..299) error("Pending job queue unavailable ($jobStatus)")
+            val jobRows = JSONArray(jobBody)
+            val pendingJobs = (0 until jobRows.length()).map { i ->
+                val row = jobRows.getJSONObject(i)
+                Job(row.getString("id"), row.getString("title"), row.getString("description"), row.getString("category"),
+                    row.getString("district"), row.optString("upazila"), row.getLong("agreed_wage_paisa"))
+            }
+            val (requestStatus, requestBody) = request("/rest/v1/employer_requests?select=id,business_name,contact_name,district,upazila&status=eq.pending&order=created_at.asc&limit=100", token)
+            if (requestStatus !in 200..299) error("Employer request queue unavailable ($requestStatus)")
+            val requestRows = JSONArray(requestBody)
+            val employerRequests = (0 until requestRows.length()).map { i ->
+                val row = requestRows.getJSONObject(i)
+                EmployerRequest(row.getString("id"), row.getString("business_name"), row.getString("contact_name"),
+                    row.getString("district"), row.getString("upazila"))
+            }
+            pendingJobs to employerRequests
+        }
+    }
+
+    suspend fun adminReviewJob(token: String, jobId: String, approve: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/admin_review_job", token, "POST",
+                JSONObject().put("p_job_id", jobId).put("p_approve", approve))
+            if (status !in 200..299) error("Job review failed ($status): $body")
+        }
+    }
+
+    suspend fun adminReviewEmployerRequest(token: String, requestId: String, approve: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/admin_review_employer_request", token, "POST",
+                JSONObject().put("p_request_id", requestId).put("p_approve", approve))
+            if (status !in 200..299) error("Employer review failed ($status): $body")
+        }
+    }
+
 }
