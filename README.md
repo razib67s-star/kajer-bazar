@@ -1,24 +1,27 @@
 # কাজের বাজার — Android App
 
-বাংলাদেশজুড়ে কাজদাতা ও কর্মীদের সংযুক্ত করার বাংলা কাজের মার্কেটপ্লেস।
+বাংলাদেশজুড়ে কর্মী ও কাজদাতাদের সংযুক্ত করার বাংলা কাজের মার্কেটপ্লেস।
 
-## অনুমোদিত পণ্যের সিদ্ধান্ত
-- ব্যবহারকারী: কাজদাতা ও কর্মী
-- এলাকা: বাংলাদেশ (জেলা/উপজেলা ভিত্তিক)
-- কমিশন: সফল কাজের সম্মত পারিশ্রমিকের অতিরিক্ত ১০% কাজদাতা দেবেন; কর্মী পুরো সম্মত পারিশ্রমিক পাবেন
-- উদাহরণ: কর্মীর পারিশ্রমিক ১,০০০ টাকা হলে কাজদাতা মোট ১,১০০ টাকা দেবেন; ১০০ টাকা কমিশন
+## ব্যবসায়িক নিয়ম
+- বাজার: বাংলাদেশ, জেলা/উপজেলা ভিত্তিক
+- ব্যবহারকারী: কর্মী ও কাজদাতা
+- কমিশন: কর্মীর agreed wage-এর অতিরিক্ত ১০% কাজদাতা দেবেন
+- উদাহরণ: কর্মীর মজুরি ৳১,০০০ হলে কাজদাতা মোট ৳১,১০০ দেবেন; কর্মী পুরো ৳১,০০০ পাবেন
 - ভাষা: বাংলা
 
-## উন্নয়ন পরিকল্পনা
-বৈশিষ্ট্য, নিরাপত্তা, পেমেন্ট, কমিশন এবং ধাপভিত্তিক বাস্তবায়নের জন্য [ROADMAP_BN.md](ROADMAP_BN.md) দেখুন।
+## বর্তমান বাস্তবায়ন
+- Supabase schema, RLS এবং secure job lifecycle RPCs প্রয়োগ করা হয়েছে।
+- Android-এ phone OTP request/verify flow, profile/job feed, worker apply, employer request এবং moderated job posting UI যোগ করা হয়েছে।
+- Payment foundation এবং sandbox order function আছে; live payment নেই।
+- OTP/SMS provider, admin dashboard UI, scheduler, notification, document verification, session persistence এবং production release এখনও অসম্পূর্ণ।
 
-## বর্তমান অবস্থা
-বর্তমান Android অ্যাপটি প্রাথমিক demo। বাস্তব OTP login, backend/database, কাজ প্রকাশ ও আবেদন, admin dashboard, payment gateway এবং commission collection এখনো চালু নয়। Roadmap-এ লেখা থাকা মানে feature তৈরি বা সক্রিয় হয়েছে—এমন নয়।
+## Build
+GitHub Actions-এর **Build Kajer Bazar APK** workflow debug APK তৈরি ও emulator test করে। সফল run-এর artifact-ই ব্যবহার করুন। Debug APK production release নয়।
 
-## APK build
-GitHub Actions-এর **Build Kajer Bazar APK** workflow চালিয়ে build artifact সংগ্রহ করা যায়। বর্তমান debug APK পরীক্ষার জন্য; এটি production release নয়।
+## Security
+- Play Protect বা Android security feature বন্ধ করে install করবেন না।
+- Publishable key ছাড়া কোনো secret Android app-এ রাখবেন না।
+- SMS/payment secrets শুধু provider/Supabase secret manager-এ থাকবে।
+- Production চালুর আগে security, legal, privacy, moderation ও payment review আবশ্যক।
 
-## নিরাপত্তা
-- Play Protect বা Android নিরাপত্তা ব্যবস্থা বন্ধ করে ইনস্টল করবেন না।
-- Production signing key, payment secret বা OTP secret কখনো repository-তে commit করবেন না।
-- বাস্তব পেমেন্ট কেবল অনুমোদিত merchant account, provider approval এবং secure backend দিয়ে চালু হবে।
+বিস্তারিত: [BACKEND_SETUP_BN.md](BACKEND_SETUP_BN.md), [PAYMENTS_SETUP_BN.md](PAYMENTS_SETUP_BN.md), [ROADMAP_BN.md](ROADMAP_BN.md)।
