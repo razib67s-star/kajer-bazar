@@ -70,7 +70,7 @@ jobs:
             set -e
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb shell am force-stop com.kajerbazar.app || true
-            adb shell am start -n com.kajerbazar.app/.MainActivity
+            adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity
             sleep 15
             adb shell pidof com.kajerbazar.app >/dev/null || (echo "App process not running after launch; recent logcat follows"; adb logcat -d -t 3000; exit 1)
             echo "PASS: APK installed and app process remained alive for 15 seconds"
