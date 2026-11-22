@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -43,6 +45,19 @@ fun KajerBazarApp() {
     var profile by remember { mutableStateOf<MarketplaceRepository.Profile?>(null) }
     var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var jobMessage by remember { mutableStateOf("কাজ দেখতে OTP দিয়ে লগইন করুন।") }
+    var showEmployerForm by remember { mutableStateOf(false) }
+    var showJobForm by remember { mutableStateOf(false) }
+    var businessName by remember { mutableStateOf("") }
+    var contactName by remember { mutableStateOf("") }
+    var employerDistrict by remember { mutableStateOf("") }
+    var employerUpazila by remember { mutableStateOf("") }
+    var employerDetails by remember { mutableStateOf("") }
+    var jobTitle by remember { mutableStateOf("") }
+    var jobDescription by remember { mutableStateOf("") }
+    var jobCategory by remember { mutableStateOf("") }
+    var jobDistrict by remember { mutableStateOf("") }
+    var jobUpazila by remember { mutableStateOf("") }
+    var jobWage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
@@ -91,6 +106,12 @@ fun KajerBazarApp() {
                                 Text("নাম: ${profile?.fullName?.ifBlank { "নাম যোগ করা হয়নি" }}")
                                 Text("অ্যাকাউন্ট: ${if (profile?.role == "employer") "কাজদাতা" else "কর্মী"}")
                                 Text("এলাকা: ${listOfNotNull(profile?.district, profile?.upazila).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "যোগ করা হয়নি" }}")
+                                if (profile?.role == "worker") {
+                                    Button(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) { Text("কাজদাতা হতে আবেদন করুন") }
+                                }
+                                if (profile?.role == "employer") {
+                                    Button(onClick = { showJobForm = true }, modifier = Modifier.fillMaxWidth()) { Text("নতুন কাজ পোস্ট করুন") }
+                                }
                             }
                         }
                     }
@@ -189,6 +210,81 @@ fun KajerBazarApp() {
                         else showLogin = false
                     }) { Text(if (otpSent && signedInPhone == null) "নম্বর বদলান" else "বন্ধ") }
                 }
+            )
+        }
+
+        if (showEmployerForm) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showEmployerForm = false },
+                title = { Text("কাজদাতা হওয়ার আবেদন") },
+                text = {
+                    Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("নিরাপত্তার জন্য অ্যাডমিন যাচাইয়ের পর কাজদাতা সুবিধা চালু হবে।")
+                        OutlinedTextField(businessName, { businessName = it }, label = { Text("প্রতিষ্ঠান/কাজদাতার নাম") }, singleLine = true)
+                        OutlinedTextField(contactName, { contactName = it }, label = { Text("যোগাযোগকারীর নাম") }, singleLine = true)
+                        OutlinedTextField(employerDistrict, { employerDistrict = it }, label = { Text("জেলা") }, singleLine = true)
+                        OutlinedTextField(employerUpazila, { employerUpazila = it }, label = { Text("উপজেলা") }, singleLine = true)
+                        OutlinedTextField(employerDetails, { employerDetails = it }, label = { Text("অতিরিক্ত তথ্য (ঐচ্ছিক)") })
+                        if (authMessage.isNotBlank()) Text(authMessage)
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        val token = accessToken
+                        if (token == null) { authMessage = "আবার লগইন করুন।" } else {
+                            busy = true
+                            scope.launch {
+                                val result = MarketplaceRepository.submitEmployerRequest(token, businessName, contactName, employerDistrict, employerUpazila, employerDetails)
+                                busy = false
+                                authMessage = if (result.isSuccess) "আবেদন জমা হয়েছে। অ্যাডমিন যাচাইয়ের পর সিদ্ধান্ত জানানো হবে।" else result.exceptionOrNull()?.message ?: "আবেদন করা যায়নি।"
+                                if (result.isSuccess) showEmployerForm = false
+                            }
+                        }
+                    }) { Text(if (busy) "জমা হচ্ছে…" else "আবেদন জমা দিন") }
+                },
+                dismissButton = { TextButton(enabled = !busy, onClick = { showEmployerForm = false }) { Text("বন্ধ") } }
+            )
+        }
+
+        if (showJobForm) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showJobForm = false },
+                title = { Text("নতুন কাজ পোস্ট করুন") },
+                text = {
+                    Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("জমা দিলে কাজটি সরাসরি প্রকাশ হবে না; অ্যাডমিন পর্যালোচনায় যাবে।")
+                        OutlinedTextField(jobTitle, { jobTitle = it }, label = { Text("কাজের শিরোনাম") }, singleLine = true)
+                        OutlinedTextField(jobDescription, { jobDescription = it }, label = { Text("কাজের বিস্তারিত (কমপক্ষে ২০ অক্ষর)") })
+                        OutlinedTextField(jobCategory, { jobCategory = it }, label = { Text("কাজের বিভাগ") }, singleLine = true)
+                        OutlinedTextField(jobDistrict, { jobDistrict = it }, label = { Text("জেলা") }, singleLine = true)
+                        OutlinedTextField(jobUpazila, { jobUpazila = it }, label = { Text("উপজেলা") }, singleLine = true)
+                        OutlinedTextField(jobWage, { jobWage = it.filter(Char::isDigit) }, label = { Text("কর্মীর মজুরি (টাকা)") }, singleLine = true)
+                        Text("কর্মী পুরো মজুরি পাবেন। নিয়োগদাতা পরে এর অতিরিক্ত ১০% কমিশন দেবেন।")
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        val token = accessToken
+                        val wage = jobWage.toLongOrNull()
+                        if (jobTitle.length !in 5..120 || jobDescription.length !in 20..5000 || jobCategory.isBlank() || jobDistrict.isBlank() || jobUpazila.isBlank() || wage == null || wage <= 0) {
+                            jobMessage = "সব তথ্য সঠিকভাবে পূরণ করুন। শিরোনাম ৫-১২০ এবং বিস্তারিত ২০-৫০০০ অক্ষর হতে হবে।"
+                        } else if (token == null) {
+                            jobMessage = "আবার লগইন করুন।"
+                        } else {
+                            busy = true
+                            scope.launch {
+                                val result = MarketplaceRepository.createJobForReview(token, jobTitle, jobDescription, jobCategory, jobDistrict, jobUpazila, wage)
+                                busy = false
+                                jobMessage = if (result.isSuccess) "কাজটি অ্যাডমিন পর্যালোচনার জন্য জমা হয়েছে।" else result.exceptionOrNull()?.message ?: "কাজ পোস্ট করা যায়নি।"
+                                if (result.isSuccess) {
+                                    showJobForm = false
+                                    jobTitle = ""; jobDescription = ""; jobCategory = ""; jobDistrict = ""; jobUpazila = ""; jobWage = ""
+                                }
+                            }
+                        }
+                    }) { Text(if (busy) "জমা হচ্ছে…" else "পর্যালোচনায় পাঠান") }
+                },
+                dismissButton = { TextButton(enabled = !busy, onClick = { showJobForm = false }) { Text("বন্ধ") } }
             )
         }
     }
