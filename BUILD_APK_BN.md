@@ -1,21 +1,27 @@
-# কাজের বাজার APK তৈরির নির্দেশনা
+# কাজের বাজার APK — ইনস্টল ও পরীক্ষার নির্দেশনা
 
-## GitHub থেকে পরীক্ষামূলক APK
-1. GitHub-এ `razib67s-star/kajer-bazar` repository খুলুন।
-2. **Actions** ট্যাবে যান।
-3. **Build Kajer Bazar APK** workflow নির্বাচন করুন।
-4. **Run workflow** চাপুন (যদি workflow-টি manual run সমর্থন করে)।
-5. Build সম্পন্ন হলে workflow run খুলে **Artifacts** থেকে `Kajer-Bazar-Android-APK` ডাউনলোড করুন।
-6. ZIP Extract করে `Kajer-Bazar-Android.apk` ফাইলটি পাবেন।
+## পরীক্ষামূলক APK কোথায় পাবেন
+1. GitHub-এ [Kajer Bazar Actions](https://github.com/razib67s-star/kajer-bazar/actions) খুলুন।
+2. সর্বশেষ **Build Kajer Bazar APK** রান নির্বাচন করুন।
+3. রান সফল হলে **Artifacts** থেকে `Kajer-Bazar-Android-APK` ডাউনলোড করুন।
+4. ZIP Extract করে `Kajer-Bazar-Android.apk` ফাইলটি ইনস্টল করুন।
 
-## গুরুত্বপূর্ণ নিরাপত্তা
-- এই APK debug/test build; production release নয়।
-- Android/Play Protect সতর্কতা এলে নিরাপত্তা বন্ধ করবেন না বা জোর করে Install করবেন না। আগে build/source যাচাই করুন।
-- Production release-এর জন্য আলাদা release signing key নিরাপদে সংরক্ষণ করতে হবে; key বা password GitHub repository-তে আপলোড করা যাবে না।
-- bKash/Nagad payment secret কখনো Android APK-তে রাখা যাবে না। অনুমোদিত merchant ও secure backend লাগবে।
+## ফোনে ইনস্টল না হলে
+- Android-এর Auto Blocker বা Play Protect বন্ধ করবেন না।
+- একই অ্যাপের আগের পরীক্ষামূলক সংস্করণ ইনস্টল থাকলে, সেটি আপডেট করার সময় signing-key mismatch হতে পারে। পুরোনো অ্যাপের ভেতরে প্রয়োজনীয় তথ্য থাকলে আগে সংরক্ষণ করুন; তারপরই কেবল পুরোনো পরীক্ষামূলক অ্যাপ uninstall করে নতুন APK ইনস্টল পরীক্ষা করুন। Uninstall করলে অ্যাপের স্থানীয় তথ্য মুছে যেতে পারে।
+- সতর্কবার্তা এলে জোর করে ইনস্টল করবেন না। সঠিক উৎস ও APK যাচাই ছাড়া নিরাপত্তা উপেক্ষা করবেন না।
 
-## বর্তমান অ্যাপের সীমাবদ্ধতা
-বর্তমান অ্যাপটি প্রাথমিক demo। বাস্তব OTP login, server/database, job posting/application, admin dashboard, payment ও commission collection এখনো সম্পন্ন নয়।
+## এই বিল্ডের সীমা
+এটি GitHub Actions-এর debug/test APK; Play Store বা জনসাধারণের জন্য স্বাক্ষরিত production release নয়। Build ও APK signature যাচাই সফল হওয়া মানেই Samsung ফোনে ইনস্টল/চালু হওয়া নিশ্চিত নয়। ফোনে বাস্তব ইনস্টল পরীক্ষা এখনও বাকি।
 
-## পণ্যের সিদ্ধান্ত ও উন্নয়ন
-বাংলাদেশজুড়ে কাজদাতা ও কর্মীদের marketplace এবং সফল কাজপ্রতি ১০% কমিশনের প্রাথমিক নীতি [ROADMAP_BN.md](ROADMAP_BN.md)-এ নথিভুক্ত। কমিশন কে দেবে, সফল কাজের সংজ্ঞা, বাতিল/ফেরতের নিয়ম ও payment provider চূড়ান্ত না হওয়া পর্যন্ত live commission collection চালু করা যাবে না।
+## এখনো প্রয়োজনীয় কাজ
+- Supabase Phone Auth ও SMS Provider কনফিগারেশন
+- অ্যাডমিন অ্যাকাউন্ট bootstrap ও বাস্তব OTP পরীক্ষা
+- প্রোফাইল সম্পাদনা, নথি যাচাই, নোটিফিকেশন ও সম্পূর্ণ কাজ-সমাপ্তি প্রবাহের UI পরীক্ষা
+- লাইভ পেমেন্টের জন্য অনুমোদিত merchant account ও নিরাপদ backend integration
+- production signing key, privacy/legal review এবং বাস্তব ডিভাইসে QA
+
+## নিরাপত্তা
+- Play Protect বা Android security feature বন্ধ করবেন না।
+- Supabase service-role key, SMS secret বা payment secret Android অ্যাপ/GitHub-এ রাখবেন না।
+- কর্মী agreed wage-এর পুরো টাকা পাবেন; নিয়োগদাতা তার অতিরিক্ত ১০% কমিশন দেবেন। লাইভ টাকা সংগ্রহ এখনো চালু নয়।
