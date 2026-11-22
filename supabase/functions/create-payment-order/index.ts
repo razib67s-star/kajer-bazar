@@ -31,9 +31,9 @@ Deno.serve(async (req: Request) => {
   const { data: profile, error: profileError } = await admin.from("profiles").select("role").eq("id", employerId).maybeSingle();
   if (profileError) return reply(500, { error: "profile_lookup_failed" });
   if (!profile || profile.role !== "employer") return reply(403, { error: "employer_account_required" });
+  const fields = "id, job_id, employer_id, worker_id, amount_paisa, commission_paisa, employer_total_paisa, worker_net_paisa, currency, status, environment";
   const { data: existing, error: existingError } = await admin.from("payment_orders")
-    .select("id, job_id, employer_id, worker_id, amount_paisa, commission_paisa, worker_net_paisa, currency, status, environment")
-    .eq("idempotency_key", idempotency_key).maybeSingle();
+    .select(fields).eq("idempotency_key", idempotency_key).maybeSingle();
   if (existingError) return reply(500, { error: "idempotency_lookup_failed" });
   if (existing) {
     if (existing.employer_id !== employerId || existing.job_id !== job_id) return reply(409, { error: "idempotency_key_already_used" });
@@ -53,10 +53,14 @@ Deno.serve(async (req: Request) => {
     job_id, employer_id: employerId, worker_id: application.worker_id,
     amount_paisa: job.agreed_wage_paisa, commission_bps: 1000,
     provider: "sandbox", environment: "sandbox", status: "pending", idempotency_key,
-  }).select("id, job_id, employer_id, worker_id, amount_paisa, commission_paisa, worker_net_paisa, currency, status, environment").single();
+  }).select(fields).single();
   if (insertError) {
     if (insertError.code === "23505") return reply(409, { error: "duplicate_payment_request" });
     return reply(500, { error: "payment_order_creation_failed" });
   }
-  return reply(201, { payment, reused: false, live_payment_enabled: false, message: "Pending sandbox order created. No money was collected." });
+  return reply(201, {
+    payment, reused: false, live_payment_enabled: false,
+    message: "Pending sandbox order created. No money was collected.",
+    pricing_rule: "Employer pays agreed worker wage plus 10% platform commission; worker receives the full agreed wage."
+  });
 });
