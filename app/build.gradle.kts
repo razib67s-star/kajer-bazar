@@ -31,6 +31,15 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // Keep CI/test APK separate from any older debug-signed installation.
+    // Production release will retain the base applicationId.
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".test"
+            versionNameSuffix = "-test"
+        }
+    }
 }
 
 dependencies {
