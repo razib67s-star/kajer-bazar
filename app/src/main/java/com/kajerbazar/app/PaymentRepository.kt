@@ -16,8 +16,9 @@ object PaymentRepository {
         val success: Boolean,
         val message: String,
         val orderId: String? = null,
-        val amountPaisa: Long? = null,
+        val agreedWagePaisa: Long? = null,
         val commissionPaisa: Long? = null,
+        val employerTotalPaisa: Long? = null,
         val workerNetPaisa: Long? = null,
         val status: String? = null
     )
@@ -72,8 +73,9 @@ object PaymentRepository {
                 success = true,
                 message = "পরীক্ষামূলক অর্ডার তৈরি হয়েছে। কোনো টাকা নেওয়া হয়নি।",
                 orderId = payment.optString("id").takeIf { it.isNotBlank() },
-                amountPaisa = payment.optLong("amount_paisa"),
+                agreedWagePaisa = payment.optLong("amount_paisa"),
                 commissionPaisa = payment.optLong("commission_paisa"),
+                employerTotalPaisa = payment.optLong("employer_total_paisa"),
                 workerNetPaisa = payment.optLong("worker_net_paisa"),
                 status = payment.optString("status")
             )
