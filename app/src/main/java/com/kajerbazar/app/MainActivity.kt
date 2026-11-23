@@ -31,12 +31,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KajerBazarApp() {
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
-    LaunchedEffect(Unit) {
-        connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
-        val publicJobs = MarketplaceRepository.getPublishedJobsPublic()
-        jobs = publicJobs.getOrNull().orEmpty()
-        jobMessage = if (publicJobs.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else publicJobs.exceptionOrNull()?.message ?: "প্রকাশিত কাজ দেখুন।"
-    }
     var showLogin by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -52,6 +46,12 @@ fun KajerBazarApp() {
     var adminJobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminEmployerRequests by remember { mutableStateOf<List<MarketplaceRepository.EmployerRequest>>(emptyList()) }
     var jobMessage by remember { mutableStateOf("প্রকাশিত কাজ লোড হচ্ছে…") }
+    LaunchedEffect(Unit) {
+        connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
+        val publicJobs = MarketplaceRepository.getPublishedJobsPublic()
+        jobs = publicJobs.getOrNull().orEmpty()
+        jobMessage = if (publicJobs.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else publicJobs.exceptionOrNull()?.message ?: "প্রকাশিত কাজ দেখুন।"
+    }
     var showEmployerForm by remember { mutableStateOf(false) }
     var showJobForm by remember { mutableStateOf(false) }
     var businessName by remember { mutableStateOf("") }
