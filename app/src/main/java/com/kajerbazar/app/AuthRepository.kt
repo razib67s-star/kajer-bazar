@@ -29,7 +29,7 @@ object AuthRepository {
         return normalized.takeIf { Regex("^\\+8801[3-9][0-9]{8}$").matches(it) }
     }
 
-    private fun request(path: String, body: JSONObject): Pair<Int, JSONObject> {
+    private fun request(path: String, body: JSONObject, bearerToken: String? = null): Pair<Int, JSONObject> {
         val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
         try {
             connection.requestMethod = "POST"
@@ -38,6 +38,7 @@ object AuthRepository {
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+            if (!bearerToken.isNullOrBlank()) connection.setRequestProperty("Authorization", "Bearer $bearerToken")
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
@@ -167,6 +168,17 @@ object AuthRepository {
             }
         } catch (_: Exception) {
             AuthResult(false, "সার্ভারে সংযোগ হয়নি; পরে আবার চেষ্টা করুন।")
+        }
+    }
+
+
+    suspend fun signOut(accessToken: String) = withContext(Dispatchers.IO) {
+        if (accessToken.isNotBlank()) {
+            try {
+                request("/auth/v1/logout", JSONObject(), accessToken)
+            } catch (_: Exception) {
+                // Local encrypted session is cleared by the caller even if offline.
+            }
         }
     }
 
