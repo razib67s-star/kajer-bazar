@@ -522,6 +522,7 @@ fun KajerBazarApp() {
                                         if (application.message.isNotBlank()) Text("বার্তা: ${application.message}")
                                         Text("আবেদনের অবস্থা: ${applicationStatusLabel(application.status)}")
                                         if (application.status == "submitted") {
+                                            Text("এই কর্মীকে নির্বাচন করলে অন্য জমা দেওয়া আবেদনগুলো প্রত্যাখ্যাত হবে।")
                                             Button(enabled = !busy, onClick = {
                                                 val token = accessToken
                                                 if (token != null) {
