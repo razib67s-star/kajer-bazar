@@ -44,7 +44,8 @@
 - ইমেইল signup confirmation চালু থাকলে confirmation link খুলে তারপর login করতে হবে; live project setting end-to-end যাচাই বাকি।
 - Android Keystore-এ AES-GCM দিয়ে refresh token encrypted storage, app start-এ refresh, logout-এ server sign-out ও local clear code যুক্ত হয়েছে; Emulator instrumentation test চলছে।
 - Public job feed-এর জন্য column-level SELECT grant দেওয়া হয়েছে; private work_address anon/authenticated client-কে দেওয়া হয়নি।
-- Profile edit, ID verification/document upload এবং admin dashboard UI।
+- Secure profile-update RPC কেবল নিজের নাম/জেলা/উপজেলা বদলাতে দেয়; role বা auth phone বদলাতে দেয় না।
+- ID verification/document upload এবং full admin dashboard UI।
 - Admin notification/FCM, report/block, ratings, support and audit UI।
 - Overdue completion scheduler, disputes evidence and admin resolution.
 - OTP provider config and real SMS end-to-end test.
