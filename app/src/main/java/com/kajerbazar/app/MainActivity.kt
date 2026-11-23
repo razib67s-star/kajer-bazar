@@ -301,8 +301,12 @@ fun KajerBazarApp() {
                 confirmButton = {
                     if (signedInAccount != null) {
                         TextButton(onClick = {
+                            val currentToken = accessToken
                             signedInAccount = null; accessToken = null; userId = null; profile = null
-                            scope.launch(Dispatchers.IO) { SessionStore.clear(appContext) }
+                            scope.launch {
+                                if (!currentToken.isNullOrBlank()) AuthRepository.signOut(currentToken)
+                                withContext(Dispatchers.IO) { SessionStore.clear(appContext) }
+                            }
                             jobMessage = "প্রকাশিত কাজ দেখতে লগইন প্রয়োজন নেই।"; showLogin = false
                         }) { Text("লগআউট") }
                     } else {
