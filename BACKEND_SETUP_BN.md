@@ -19,9 +19,10 @@
 - ইমেইল/পাসওয়ার্ড sign-up ও sign-in; পুরোনো email account flow বজায় রাখা হয়েছে।
 - বাংলাদেশি মোবাইল নম্বরের OTP request/verification flow (SMS provider configure না হওয়া পর্যন্ত live নয়)।
 - OTP session থেকে authenticated profile ও published jobs পড়া।
-- Worker job application RPC ব্যবহার করে আবেদন করতে পারে।
+- Worker job application RPC ব্যবহার করে আবেদন করতে পারে; নিজের আবেদনের তালিকা দেখতে ও জমা দেওয়া আবেদন প্রত্যাহার করতে পারে।
 - Worker employer হওয়ার আবেদন পাঠাতে পারে।
 - Admin-approved employer draft job তৈরি করে moderation-এ পাঠাতে পারে।
+- Employer নিজের পোস্ট করা কাজ ও আবেদনকারীদের তালিকা দেখতে এবং একজন কর্মী নির্বাচন করতে পারে। Applicant preview-তে ফোন নম্বর প্রকাশ করা হয় না।
 
 ## OTP চালু করতে Supabase Dashboard-এ প্রয়োজনীয় কাজ
 ১. Authentication → Sign In / Providers-এ Phone provider enable করুন।
@@ -41,7 +42,8 @@
 ## এখনো বাকি / production-এর আগে
 - Encrypted session persistence ও refresh-token lifecycle-এর বাস্তব ডিভাইস পরীক্ষা; offline/expired-session edge cases।
 - ইমেইল signup confirmation চালু থাকলে confirmation link খুলে তারপর login করতে হবে; live project setting end-to-end যাচাই বাকি।
-- Android Keystore-এ AES-GCM দিয়ে refresh token encrypted storage, app start-এ refresh, logout-এ server sign-out ও local clear code যুক্ত হয়েছে; CI build ও emulator test দিয়ে যাচাই চলছে।
+- Android Keystore-এ AES-GCM দিয়ে refresh token encrypted storage, app start-এ refresh, logout-এ server sign-out ও local clear code যুক্ত হয়েছে; Emulator instrumentation test চলছে।
+- Public job feed-এর জন্য column-level SELECT grant দেওয়া হয়েছে; private work_address anon/authenticated client-কে দেওয়া হয়নি।
 - Profile edit, ID verification/document upload এবং admin dashboard UI।
 - Admin notification/FCM, report/block, ratings, support and audit UI।
 - Overdue completion scheduler, disputes evidence and admin resolution.
