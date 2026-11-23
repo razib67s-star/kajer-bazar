@@ -39,8 +39,9 @@
 - ৩ দিনের overdue completion-কে Admin Review-তে পাঠানোর function আছে, কিন্তু scheduled invocation/cron এখনো configure হয়নি।
 
 ## এখনো বাকি / production-এর আগে
-- Android-এর encrypted session persistence, refresh-token lifecycle ও logout invalidation।
+- Encrypted session persistence ও refresh-token lifecycle-এর বাস্তব ডিভাইস পরীক্ষা; offline/expired-session edge cases।
 - ইমেইল signup confirmation চালু থাকলে confirmation link খুলে তারপর login করতে হবে; live project setting end-to-end যাচাই বাকি।
+- Android Keystore-এ AES-GCM দিয়ে refresh token encrypted storage, app start-এ refresh, logout-এ server sign-out ও local clear code যুক্ত হয়েছে; CI build ও emulator test দিয়ে যাচাই চলছে।
 - Profile edit, ID verification/document upload এবং admin dashboard UI।
 - Admin notification/FCM, report/block, ratings, support and audit UI।
 - Overdue completion scheduler, disputes evidence and admin resolution.
