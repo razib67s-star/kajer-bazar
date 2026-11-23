@@ -31,7 +31,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KajerBazarApp() {
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
-    LaunchedEffect(Unit) { connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() } }
+    LaunchedEffect(Unit) {
+        connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
+        val publicJobs = MarketplaceRepository.getPublishedJobsPublic()
+        jobs = publicJobs.getOrNull().orEmpty()
+        jobMessage = if (publicJobs.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else publicJobs.exceptionOrNull()?.message ?: "প্রকাশিত কাজ দেখুন।"
+    }
     var showLogin by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -46,7 +51,7 @@ fun KajerBazarApp() {
     var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminJobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminEmployerRequests by remember { mutableStateOf<List<MarketplaceRepository.EmployerRequest>>(emptyList()) }
-    var jobMessage by remember { mutableStateOf("কাজ দেখতে ইমেইল দিয়ে লগইন করুন।") }
+    var jobMessage by remember { mutableStateOf("প্রকাশিত কাজ লোড হচ্ছে…") }
     var showEmployerForm by remember { mutableStateOf(false) }
     var showJobForm by remember { mutableStateOf(false) }
     var businessName by remember { mutableStateOf("") }
@@ -88,14 +93,14 @@ fun KajerBazarApp() {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
                         Column(Modifier.padding(14.dp)) {
                             Text("নিরাপদ পরীক্ষামূলক সংস্করণ", fontWeight = FontWeight.Bold, color = Color(0xFF8A4B08))
-                            Text("বিনামূল্যে ইমেইল ও পাসওয়ার্ড দিয়ে অ্যাকাউন্ট খুলুন।")
+                            Text("প্রকাশিত কাজ দেখতে লগইন লাগবে না। আবেদন করতে বিনামূল্যে অ্যাকাউন্ট খুলুন।")
                             Text("বাস্তব কাজের বিজ্ঞাপন প্রকাশের আগে নিয়োগদাতার অনুমোদন প্রয়োজন।")
                         }
                     }
                 }
                 item {
                     Text("বাংলাদেশের কাজের বাজার", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("জেলা ও উপজেলা অনুযায়ী প্রকাশিত কাজ দেখুন।")
+                    Text("জেলা ও উপজেলা অনুযায়ী প্রকাশিত কাজ দেখুন। কাজ ব্রাউজ করতে অ্যাকাউন্ট প্রয়োজন নেই।")
                     Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
                         Text(if (signedInEmail == null) "ইমেইল দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
