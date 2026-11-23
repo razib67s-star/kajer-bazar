@@ -577,15 +577,16 @@ fun KajerBazarApp() {
                 confirmButton = {
                     TextButton(enabled = !busy, onClick = {
                         val token = accessToken
+                        val employerId = userId
                         val wage = jobWage.toLongOrNull()
                         if (jobTitle.length !in 5..120 || jobDescription.length !in 20..5000 || jobCategory.isBlank() || jobDistrict.isBlank() || jobUpazila.isBlank() || wage == null || wage <= 0) {
                             jobMessage = "সব তথ্য সঠিকভাবে পূরণ করুন। শিরোনাম ৫-১২০ এবং বিস্তারিত ২০-৫০০০ অক্ষর হতে হবে।"
-                        } else if (token == null) {
+                        } else if (token == null || employerId == null) {
                             jobMessage = "আবার লগইন করুন।"
                         } else {
                             busy = true
                             scope.launch {
-                                val result = MarketplaceRepository.createJobForReview(token, jobTitle, jobDescription, jobCategory, jobDistrict, jobUpazila, wage)
+                                val result = MarketplaceRepository.createJobForReview(token, employerId, jobTitle, jobDescription, jobCategory, jobDistrict, jobUpazila, wage)
                                 busy = false
                                 jobMessage = if (result.isSuccess) "কাজটি অ্যাডমিন পর্যালোচনার জন্য জমা হয়েছে।" else result.exceptionOrNull()?.message ?: "কাজ পোস্ট করা যায়নি।"
                                 if (result.isSuccess) {
