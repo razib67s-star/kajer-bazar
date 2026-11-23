@@ -130,6 +130,48 @@ object MarketplaceRepository {
     }
 
     data class EmployerRequest(val id: String, val businessName: String, val contactName: String, val district: String, val upazila: String)
+    data class EmployerJob(val id: String, val title: String, val status: String)
+    data class EmployerApplication(
+        val id: String, val workerName: String, val district: String, val upazila: String,
+        val message: String, val status: String
+    )
+
+    suspend fun getEmployerJobs(token: String, employerId: String): Result<List<EmployerJob>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val encodedId = URLEncoder.encode(employerId, "UTF-8")
+            val (status, body) = request("/rest/v1/jobs?select=id,title,status&employer_id=eq.$encodedId&order=created_at.desc&limit=50", token)
+            if (status !in 200..299) error("আপনার কাজের তালিকা পাওয়া যায়নি ($status)")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                EmployerJob(row.getString("id"), row.getString("title"), row.optString("status"))
+            }
+        }
+    }
+
+    suspend fun getEmployerApplications(token: String, jobId: String): Result<List<EmployerApplication>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/get_employer_applications", token, "POST", JSONObject().put("p_job_id", jobId))
+            if (status !in 200..299) error("আবেদনকারীদের তালিকা পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                EmployerApplication(
+                    row.getString("application_id"), row.optString("worker_name"),
+                    row.optString("worker_district"), row.optString("worker_upazila"),
+                    row.optString("message"), row.optString("status")
+                )
+            }
+        }
+    }
+
+    suspend fun selectEmployerApplication(token: String, applicationId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/select_job_application", token, "POST",
+                JSONObject().put("p_application_id", applicationId))
+            if (status !in 200..299) error("কর্মী নির্বাচন করা যায়নি ($status): $body")
+        }
+    }
 
     suspend fun getAdminQueues(token: String): Result<Pair<List<Job>, List<EmployerRequest>>> = withContext(Dispatchers.IO) {
         runCatching {
