@@ -12,14 +12,14 @@ object MarketplaceRepository {
     data class Profile(val fullName: String, val role: String, val district: String, val upazila: String)
     data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long)
 
-    private fun request(path: String, token: String, method: String = "GET", body: JSONObject? = null, prefer: String = "return=minimal"): Pair<Int, String> {
+    private fun request(path: String, token: String?, method: String = "GET", body: JSONObject? = null, prefer: String = "return=minimal"): Pair<Int, String> {
         val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
         try {
             connection.requestMethod = method
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
             connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
-            connection.setRequestProperty("Authorization", "Bearer $token")
+            if (!token.isNullOrBlank()) connection.setRequestProperty("Authorization", "Bearer $token")
             connection.setRequestProperty("Accept", "application/json")
             if (body != null) {
                 connection.doOutput = true
@@ -44,6 +44,23 @@ object MarketplaceRepository {
             if (rows.length() == 0) error("আপনার প্রোফাইল তৈরি হয়নি।")
             val row = rows.getJSONObject(0)
             Profile(row.optString("full_name"), row.optString("role", "worker"), row.optString("district"), row.optString("upazila"))
+        }
+    }
+
+    suspend fun getPublishedJobsPublic(): Result<List<Job>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa&status=eq.published&order=created_at.desc&limit=50"
+            val (status, body) = request(path, null)
+            if (status !in 200..299) error("কাজের তালিকা পাওয়া যায়নি ($status)")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                Job(
+                    row.getString("id"), row.getString("title"), row.getString("description"),
+                    row.getString("category"), row.getString("district"), row.optString("upazila"),
+                    row.getLong("agreed_wage_paisa")
+                )
+            }
         }
     }
 
