@@ -117,5 +117,22 @@ Draft → Pending moderation → Published → Applications → Worker selected 
 - OTP/SMS provider, payment gateway ও merchant account নির্বাচন
 - Terms, Privacy Policy, support contact ও dispute policy অনুমোদন
 
-## বর্তমান অবস্থার সতর্কতা
-বর্তমান repository-র Android APK একটি প্রাথমিক demo; এই নথিতে বর্ণিত login, backend, real jobs, admin, payment বা commission এখনো চালু হয়েছে—এমন দাবি করা হচ্ছে না। এই roadmap নিজে থেকে এসব feature বাস্তবায়ন করে না। প্রতিটি phase কোড, পরীক্ষা ও যাচাইয়ের মাধ্যমে সম্পন্ন করতে হবে।
+## বর্তমান বাস্তবায়নের অবস্থা — ২৪ নভেম্বর ২০২৬
+
+### কোড ও ডেটাবেসে যা যুক্ত হয়েছে
+- Supabase PostgreSQL schema, RLS, auth profile trigger এবং ন্যূনতম PostgREST grants প্রয়োগ করা হয়েছে।
+- নতুন ব্যবহারকারীর default role worker; profile owner নিজে role পরিবর্তন করতে পারে না।
+- Email/password signup-login এবং Bangladesh phone OTP request/verify code আছে; email login বাদ দেওয়া হয়নি।
+- Android Keystore-এ AES-GCM encrypted refresh-token storage, app launch-এ session refresh এবং logout-এ server sign-out/local clear code যুক্ত।
+- Public job feed, worker application, application history/withdrawal, employer verification request, moderated job posting, employer applicant review/worker selection এবং সীমিত admin moderation UI যুক্ত।
+- Public job read-এ column-level grants ব্যবহার করা হয়েছে; private work_address anonymous বা authenticated client-কে দেওয়া হয়নি।
+- GitHub Actions-এ unit tests, APK signature/package verification, Android emulator launch এবং encrypted session instrumentation tests চালানো হচ্ছে।
+
+### এখনো production-ready নয়
+- Supabase Dashboard-এ SMS provider credentials/configuration এবং বাস্তব বাংলাদেশি নম্বরে OTP delivery test বাকি। SMS provider ছাড়া OTP পাঠানো যাবে না।
+- Connected Supabase project-এ বর্তমানে registered users, profiles ও jobs শূন্য; তাই পুরোনো email account ওই project-এ আছে কি না যাচাই করা যায়নি। Email login code রাখা হয়েছে; কোনো account মুছে ফেলা হয়নি।
+- Profile edit, district/upazila search/filter, employer contact-sharing rules, full admin dashboard, notification, report/block, rating, dispute evidence and admin resolution বাকি।
+- Overdue completion scheduler, real payment gateway, refund/settlement, merchant approval, privacy policy/terms এবং support workflow বাকি।
+- Release keystore/AAB signing, real-device testing, end-to-end email/OTP/job workflow tests এবং production security review বাকি।
+
+বর্তমান debug APK বা CI build-কে সম্পূর্ণ production app বলা যাবে না। প্রতিটি অসম্পূর্ণ ধাপ বাস্তব পরীক্ষা ও অনুমোদনসহ শেষ না হওয়া পর্যন্ত ব্যবহারকারীর কাছে final install file দেওয়া হবে না।
