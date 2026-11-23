@@ -112,6 +112,10 @@ fun KajerBazarApp() {
             }
         }
     }
+    var showProfileForm by remember { mutableStateOf(false) }
+    var profileFullName by remember { mutableStateOf("") }
+    var profileDistrict by remember { mutableStateOf("") }
+    var profileUpazila by remember { mutableStateOf("") }
     var showMyApplicationsDialog by remember { mutableStateOf(false) }
     var myApplications by remember { mutableStateOf<List<MarketplaceRepository.WorkerApplication>>(emptyList()) }
     var showApplicationsDialog by remember { mutableStateOf(false) }
@@ -177,6 +181,12 @@ fun KajerBazarApp() {
                             Column(Modifier.padding(14.dp)) {
                                 Text("আপনার প্রোফাইল", fontWeight = FontWeight.Bold)
                                 Text("নাম: ${profile?.fullName?.ifBlank { "নাম যোগ করা হয়নি" }}")
+                                OutlinedButton(onClick = {
+                                    profileFullName = profile?.fullName.orEmpty()
+                                    profileDistrict = profile?.district.orEmpty()
+                                    profileUpazila = profile?.upazila.orEmpty()
+                                    showProfileForm = true
+                                }, modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল সম্পাদনা করুন") }
                                 Text("অ্যাকাউন্ট: ${if (profile?.role == "employer") "কাজদাতা" else "কর্মী"}")
                                 Text("এলাকা: ${listOfNotNull(profile?.district, profile?.upazila).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "যোগ করা হয়নি" }}")
                                 if (profile?.role == "worker") {
@@ -430,6 +440,54 @@ fun KajerBazarApp() {
                         }
                     } else TextButton(onClick = { showLogin = false }) { Text("বন্ধ") }
                 }
+            )
+        }
+
+        if (showProfileForm) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showProfileForm = false },
+                title = { Text("প্রোফাইল সম্পাদনা") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(profileFullName, { profileFullName = it.take(100) }, enabled = !busy,
+                            label = { Text("পূর্ণ নাম") }, singleLine = true)
+                        OutlinedTextField(profileDistrict, { profileDistrict = it.take(100) }, enabled = !busy,
+                            label = { Text("জেলা") }, singleLine = true)
+                        OutlinedTextField(profileUpazila, { profileUpazila = it.take(100) }, enabled = !busy,
+                            label = { Text("উপজেলা") }, singleLine = true)
+                        Text("নাম আবশ্যক; জেলা ও উপজেলা ঐচ্ছিক।")
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        val token = accessToken
+                        if (token == null) {
+                            jobMessage = "আবার লগইন করুন।"
+                        } else if (profileFullName.trim().length !in 2..100) {
+                            jobMessage = "পূর্ণ নাম ২ থেকে ১০০ অক্ষরের মধ্যে লিখুন।"
+                        } else {
+                            busy = true
+                            scope.launch {
+                                val result = MarketplaceRepository.updateMyProfile(
+                                    token, profileFullName.trim(), profileDistrict.trim(), profileUpazila.trim()
+                                )
+                                busy = false
+                                if (result.isSuccess) {
+                                    profile = profile?.copy(
+                                        fullName = profileFullName.trim(),
+                                        district = profileDistrict.trim(),
+                                        upazila = profileUpazila.trim()
+                                    )
+                                    jobMessage = "প্রোফাইল আপডেট হয়েছে।"
+                                    showProfileForm = false
+                                } else {
+                                    jobMessage = result.exceptionOrNull()?.message ?: "প্রোফাইল আপডেট হয়নি।"
+                                }
+                            }
+                        }
+                    }) { Text(if (busy) "সংরক্ষণ হচ্ছে…" else "সংরক্ষণ করুন") }
+                },
+                dismissButton = { TextButton(enabled = !busy, onClick = { showProfileForm = false }) { Text("বাতিল") } }
             )
         }
 
