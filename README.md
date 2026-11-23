@@ -23,8 +23,8 @@ GitHub Actions-এর **Build Kajer Bazar APK** workflow debug APK তৈরি 
 
 ## এখনো অসম্পূর্ণ
 - Supabase SMS provider configuration ও বাস্তব OTP end-to-end test।
-- Android Keystore-এ refresh token encryption, app start-এ session refresh এবং logout-এ server sign-out/local clear code যোগ হয়েছে; latest CI verification pending।
-- Encrypted session persistence/refresh-এর real-device edge-case test, employer applicant-management UI, full admin dashboard এবং overdue-completion scheduler।
+- Android Keystore-এ refresh token encryption, app start-এ session refresh এবং logout-এ server sign-out/local clear code যোগ হয়েছে; emulator instrumentation verification pending।
+- Encrypted session persistence/refresh-এর real-device edge-case test, full admin dashboard এবং overdue-completion scheduler।
 - Release signing, real-device test, privacy/terms ও production readiness review।
 
 ## Security
