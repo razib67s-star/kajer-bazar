@@ -1,5 +1,6 @@
 package com.kajerbazar.app
 
+import android.util.Patterns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -7,7 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object AuthRepository {
-    data class AuthResult(val success: Boolean, val message: String, val accessToken: String? = null, val phone: String? = null, val userId: String? = null)
+    data class AuthResult(val success: Boolean, val message: String, val accessToken: String? = null, val email: String? = null, val userId: String? = null)
 
     private fun request(path: String, body: JSONObject): Pair<Int, JSONObject> {
         val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
@@ -23,52 +24,49 @@ object AuthRepository {
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             return status to JSONObject(text.ifBlank { "{}" })
-        } finally {
-            connection.disconnect()
-        }
+        } finally { connection.disconnect() }
     }
 
-    suspend fun sendPhoneOtp(rawPhone: String): AuthResult = withContext(Dispatchers.IO) {
-        val digits = rawPhone.filter { it.isDigit() }
-        val phone = when {
-            digits.startsWith("880") && digits.length == 13 -> "+$digits"
-            digits.startsWith("01") && digits.length == 11 -> "+88$digits"
-            else -> return@withContext AuthResult(false, "বাংলাদেশের ১১ সংখ্যার মোবাইল নম্বর লিখুন। যেমন 01XXXXXXXXX")
-        }
+    suspend fun signUp(emailInput: String, password: String, fullName: String): AuthResult = withContext(Dispatchers.IO) {
+        val email = emailInput.trim().lowercase()
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
+        if (password.length < 8) return@withContext AuthResult(false, "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।")
+        if (fullName.isBlank()) return@withContext AuthResult(false, "আপনার নাম লিখুন।")
         try {
-            val (status, json) = request("/auth/v1/otp", JSONObject().put("phone", phone).put("create_user", true))
-            if (status in 200..299) AuthResult(true, "OTP পাঠানোর অনুরোধ গ্রহণ করা হয়েছে। SMS এলে কোড লিখুন।", phone = phone)
-            else {
-                val error = json.optString("msg", json.optString("message", json.optString("error_description", "OTP পাঠানো যায়নি।")))
-                AuthResult(false, when {
-                    status == 429 -> "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।"
-                    status == 400 || status == 422 -> "নম্বর বা Supabase SMS সেটিংস যাচাই করুন।"
-                    else -> "$error (কোড: $status)"
-                })
-            }
-        } catch (_: Exception) {
-            AuthResult(false, "সার্ভারে সংযোগ করা যায়নি। ইন্টারনেট পরীক্ষা করুন।")
-        }
-    }
-
-    suspend fun verifyPhoneOtp(phone: String, code: String): AuthResult = withContext(Dispatchers.IO) {
-        if (code.length !in 4..8 || !code.all { it.isDigit() }) {
-            return@withContext AuthResult(false, "SMS-এ পাওয়া OTP কোডটি লিখুন।")
-        }
-        try {
-            val (status, json) = request("/auth/v1/verify", JSONObject().put("phone", phone).put("token", code).put("type", "sms"))
-            val token = json.optString("access_token")
-            if (status in 200..299 && token.isNotBlank()) {
-                AuthResult(true, "মোবাইল নম্বর যাচাই সম্পন্ন হয়েছে।", accessToken = token, phone = phone, userId = json.optJSONObject("user")?.optString("id"))
+            val body = JSONObject().put("email", email).put("password", password).put("data", JSONObject().put("full_name", fullName.trim()))
+            val (status, json) = request("/auth/v1/signup", body)
+            if (status in 200..299) {
+                val token = json.optString("access_token")
+                val user = json.optJSONObject("user")
+                if (token.isNotBlank()) AuthResult(true, "অ্যাকাউন্ট তৈরি হয়েছে এবং লগইন সম্পন্ন।", token, email, user?.optString("id"))
+                else AuthResult(true, "অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলে যাচাইয়ের লিংক এলে সেটি খুলে তারপর লগইন করুন।", email = email)
             } else {
+                val msg = json.optString("msg", json.optString("message", json.optString("error_description", "অ্যাকাউন্ট তৈরি করা যায়নি।")))
                 AuthResult(false, when (status) {
-                    400, 422 -> "OTP ভুল অথবা মেয়াদ শেষ হয়েছে। নতুন কোড নিন।"
-                    429 -> "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ অপেক্ষা করুন।"
-                    else -> "যাচাই করা যায়নি। আবার চেষ্টা করুন। (কোড: $status)"
+                    429 -> "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।"
+                    400, 422 -> if (msg.contains("already", true) || msg.contains("registered", true)) "এই ইমেইল দিয়ে আগে অ্যাকাউন্ট খোলা হয়েছে। লগইন করুন।" else "তথ্য যাচাই করুন: $msg"
+                    else -> "$msg (কোড: $status)"
                 })
             }
-        } catch (_: Exception) {
-            AuthResult(false, "যাচাইকরণ সার্ভারে সংযোগ করা যায়নি।")
-        }
+        } catch (_: Exception) { AuthResult(false, "সার্ভারে সংযোগ করা যায়নি। ইন্টারনেট পরীক্ষা করুন।") }
+    }
+
+    suspend fun signIn(emailInput: String, password: String): AuthResult = withContext(Dispatchers.IO) {
+        val email = emailInput.trim().lowercase()
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
+        if (password.isBlank()) return@withContext AuthResult(false, "পাসওয়ার্ড লিখুন।")
+        try {
+            val (status, json) = request("/auth/v1/token?grant_type=password", JSONObject().put("email", email).put("password", password))
+            val token = json.optString("access_token")
+            if (status in 200..299 && token.isNotBlank()) AuthResult(true, "লগইন সফল হয়েছে।", token, email, json.optJSONObject("user")?.optString("id"))
+            else {
+                val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
+                AuthResult(false, when (status) {
+                    400, 401 -> if (msg.contains("confirm", true)) "ইমেইল যাচাই সম্পন্ন করে আবার চেষ্টা করুন।" else "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।"
+                    429 -> "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ অপেক্ষা করুন।"
+                    else -> "লগইন করা যায়নি। আবার চেষ্টা করুন। (কোড: $status)"
+                })
+            }
+        } catch (_: Exception) { AuthResult(false, "লগইন সার্ভারে সংযোগ করা যায়নি।") }
     }
 }

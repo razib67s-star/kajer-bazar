@@ -33,20 +33,20 @@ fun KajerBazarApp() {
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     LaunchedEffect(Unit) { connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() } }
     var showLogin by remember { mutableStateOf(false) }
-    var phone by remember { mutableStateOf("") }
-    var otp by remember { mutableStateOf("") }
-    var otpSent by remember { mutableStateOf(false) }
-    var pendingPhone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var fullName by remember { mutableStateOf("") }
+    var isSignUp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var authMessage by remember { mutableStateOf("") }
-    var signedInPhone by remember { mutableStateOf<String?>(null) }
+    var signedInEmail by remember { mutableStateOf<String?>(null) }
     var accessToken by remember { mutableStateOf<String?>(null) }
     var userId by remember { mutableStateOf<String?>(null) }
     var profile by remember { mutableStateOf<MarketplaceRepository.Profile?>(null) }
     var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminJobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminEmployerRequests by remember { mutableStateOf<List<MarketplaceRepository.EmployerRequest>>(emptyList()) }
-    var jobMessage by remember { mutableStateOf("কাজ দেখতে OTP দিয়ে লগইন করুন।") }
+    var jobMessage by remember { mutableStateOf("কাজ দেখতে ইমেইল দিয়ে লগইন করুন।") }
     var showEmployerForm by remember { mutableStateOf(false) }
     var showJobForm by remember { mutableStateOf(false) }
     var businessName by remember { mutableStateOf("") }
@@ -72,7 +72,7 @@ fun KajerBazarApp() {
                     } },
                     actions = {
                         TextButton(onClick = { showLogin = true }) {
-                            Text(if (signedInPhone == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
+                            Text(if (signedInEmail == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Blue, titleContentColor = Color.White)
@@ -88,7 +88,7 @@ fun KajerBazarApp() {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
                         Column(Modifier.padding(14.dp)) {
                             Text("নিরাপদ পরীক্ষামূলক সংস্করণ", fontWeight = FontWeight.Bold, color = Color(0xFF8A4B08))
-                            Text("OTP পাঠাতে Supabase Phone Auth ও SMS Provider সক্রিয় থাকতে হবে।")
+                            Text("বিনামূল্যে ইমেইল ও পাসওয়ার্ড দিয়ে অ্যাকাউন্ট খুলুন।")
                             Text("বাস্তব কাজের বিজ্ঞাপন প্রকাশের আগে নিয়োগদাতার অনুমোদন প্রয়োজন।")
                         }
                     }
@@ -97,7 +97,7 @@ fun KajerBazarApp() {
                     Text("বাংলাদেশের কাজের বাজার", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("জেলা ও উপজেলা অনুযায়ী প্রকাশিত কাজ দেখুন।")
                     Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (signedInPhone == null) "মোবাইল নম্বর দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
+                        Text(if (signedInEmail == null) "ইমেইল দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
                 }
                 if (profile != null) {
@@ -224,47 +224,38 @@ fun KajerBazarApp() {
         if (showLogin) {
             AlertDialog(
                 onDismissRequest = { if (!busy) showLogin = false },
-                title = { Text(if (signedInPhone != null) "লগইন হয়েছে" else "মোবাইল OTP লগইন") },
+                title = { Text(if (signedInEmail != null) "লগইন হয়েছে" else if (isSignUp) "নতুন অ্যাকাউন্ট খুলুন" else "ইমেইল দিয়ে লগইন") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (signedInPhone != null) {
-                            Text("যাচাইকৃত নম্বর: $signedInPhone")
-                            Text("এই সেশনে অ্যাকাউন্ট সক্রিয়। নিরাপত্তার জন্য অ্যাপ বন্ধ করলে আবার লগইন করতে হবে।")
+                        if (signedInEmail != null) {
+                            Text("লগইন করা ইমেইল: $signedInEmail")
+                            Text("নিরাপত্তার জন্য অ্যাপ বন্ধ করলে আবার লগইন করতে হতে পারে।")
                         } else {
-                            OutlinedTextField(value = phone, onValueChange = { phone = it }, enabled = !otpSent && !busy,
-                                label = { Text("মোবাইল নম্বর") }, placeholder = { Text("01XXXXXXXXX") }, singleLine = true)
-                            if (otpSent) OutlinedTextField(value = otp, onValueChange = { otp = it.filter(Char::isDigit).take(8) },
-                                enabled = !busy, label = { Text("SMS OTP কোড") }, singleLine = true)
+                            if (isSignUp) OutlinedTextField(value = fullName, onValueChange = { fullName = it }, enabled = !busy, label = { Text("আপনার পূর্ণ নাম") }, singleLine = true)
+                            OutlinedTextField(value = email, onValueChange = { email = it.trim() }, enabled = !busy, label = { Text("ইমেইল ঠিকানা") }, placeholder = { Text("name@example.com") }, singleLine = true)
+                            OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !busy, label = { Text("পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)") }, singleLine = true)
                         }
                         if (authMessage.isNotBlank()) Text(authMessage,
-                            color = if (authMessage.contains("সম্পন্ন")) Color(0xFF18733B) else MaterialTheme.colorScheme.error)
+                            color = if (authMessage.contains("সফল") || authMessage.contains("তৈরি হয়েছে")) Color(0xFF18733B) else MaterialTheme.colorScheme.error)
                     }
                 },
                 confirmButton = {
-                    if (signedInPhone != null) {
+                    if (signedInEmail != null) {
                         TextButton(onClick = {
-                            signedInPhone = null; accessToken = null; userId = null; profile = null; jobs = emptyList()
-                            jobMessage = "কাজ দেখতে OTP দিয়ে লগইন করুন।"; showLogin = false
+                            signedInEmail = null; accessToken = null; userId = null; profile = null; jobs = emptyList()
+                            jobMessage = "কাজ দেখতে ইমেইল দিয়ে লগইন করুন।"; showLogin = false
                         }) { Text("লগআউট") }
-                    } else if (!otpSent) {
-                        TextButton(enabled = !busy, onClick = {
-                            busy = true; authMessage = ""
-                            scope.launch {
-                                val result = AuthRepository.sendPhoneOtp(phone)
-                                busy = false; authMessage = result.message
-                                if (result.success) { pendingPhone = result.phone.orEmpty(); otpSent = true }
-                            }
-                        }) { Text(if (busy) "অপেক্ষা করুন…" else "OTP পাঠান") }
                     } else {
                         TextButton(enabled = !busy, onClick = {
                             busy = true; authMessage = ""
                             scope.launch {
-                                val result = AuthRepository.verifyPhoneOtp(pendingPhone, otp)
+                                val result = if (isSignUp) AuthRepository.signUp(email, password, fullName)
+                                    else AuthRepository.signIn(email, password)
                                 busy = false; authMessage = result.message
-                                if (result.success) {
-                                    signedInPhone = result.phone; accessToken = result.accessToken; userId = result.userId
-                                    otpSent = false; otp = ""; showLogin = false
-                                    val token = result.accessToken.orEmpty()
+                                if (result.success && result.accessToken != null) {
+                                    signedInEmail = result.email; accessToken = result.accessToken; userId = result.userId
+                                    showLogin = false
+                                    val token = result.accessToken
                                     val id = result.userId.orEmpty()
                                     val profileResult = MarketplaceRepository.getProfile(token, id)
                                     profile = profileResult.getOrNull()
@@ -278,14 +269,15 @@ fun KajerBazarApp() {
                                     jobMessage = if (jobResult.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else jobResult.exceptionOrNull()?.message ?: "কাজের তালিকা হালনাগাদ হয়েছে।"
                                 }
                             }
-                        }) { Text(if (busy) "যাচাই হচ্ছে…" else "OTP যাচাই করুন") }
+                        }) { Text(if (busy) "অপেক্ষা করুন…" else if (isSignUp) "অ্যাকাউন্ট তৈরি করুন" else "লগইন") }
                     }
                 },
                 dismissButton = {
-                    TextButton(enabled = !busy, onClick = {
-                        if (otpSent && signedInPhone == null) { otpSent = false; otp = ""; authMessage = "" }
-                        else showLogin = false
-                    }) { Text(if (otpSent && signedInPhone == null) "নম্বর বদলান" else "বন্ধ") }
+                    if (signedInEmail == null) {
+                        TextButton(enabled = !busy, onClick = { isSignUp = !isSignUp; authMessage = "" }) {
+                            Text(if (isSignUp) "আগে অ্যাকাউন্ট আছে? লগইন" else "নতুন অ্যাকাউন্ট খুলুন")
+                        }
+                    } else TextButton(onClick = { showLogin = false }) { Text("বন্ধ") }
                 }
             )
         }
