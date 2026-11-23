@@ -91,6 +91,10 @@ fun KajerBazarApp() {
             }
         }
     }
+    var showApplicationsDialog by remember { mutableStateOf(false) }
+    var employerJobs by remember { mutableStateOf<List<MarketplaceRepository.EmployerJob>>(emptyList()) }
+    var employerApplications by remember { mutableStateOf<List<MarketplaceRepository.EmployerApplication>>(emptyList()) }
+    var selectedEmployerJob by remember { mutableStateOf<MarketplaceRepository.EmployerJob?>(null) }
     var showEmployerForm by remember { mutableStateOf(false) }
     var showJobForm by remember { mutableStateOf(false) }
     var businessName by remember { mutableStateOf("") }
@@ -157,6 +161,22 @@ fun KajerBazarApp() {
                                 }
                                 if (profile?.role == "employer") {
                                     Button(onClick = { showJobForm = true }, modifier = Modifier.fillMaxWidth()) { Text("নতুন কাজ পোস্ট করুন") }
+                                    OutlinedButton(onClick = {
+                                        val token = accessToken
+                                        val id = userId
+                                        if (token != null && id != null) {
+                                            selectedEmployerJob = null
+                                            employerApplications = emptyList()
+                                            showApplicationsDialog = true
+                                            busy = true
+                                            scope.launch {
+                                                val result = MarketplaceRepository.getEmployerJobs(token, id)
+                                                busy = false
+                                                employerJobs = result.getOrNull().orEmpty()
+                                                if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "কাজের তালিকা পাওয়া যায়নি।"
+                                            }
+                                        }
+                                    }, modifier = Modifier.fillMaxWidth()) { Text("কাজের আবেদনগুলো দেখুন") }
                                 }
                             }
                         }
@@ -374,6 +394,76 @@ fun KajerBazarApp() {
                         }
                     } else TextButton(onClick = { showLogin = false }) { Text("বন্ধ") }
                 }
+            )
+        }
+
+        if (showApplicationsDialog) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showApplicationsDialog = false },
+                title = { Text(if (selectedEmployerJob == null) "আপনার পোস্ট করা কাজ" else "কাজের আবেদন") },
+                text = {
+                    Column(
+                        Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (selectedEmployerJob == null) {
+                            if (busy) Text("কাজের তালিকা লোড হচ্ছে…")
+                            else if (employerJobs.isEmpty()) Text("আপনার কোনো কাজ পাওয়া যায়নি।")
+                            employerJobs.forEach { employerJob ->
+                                Card {
+                                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Text(employerJob.title, fontWeight = FontWeight.Bold)
+                                        Text("অবস্থা: ${employerJob.status}")
+                                        OutlinedButton(enabled = !busy, onClick = {
+                                            val token = accessToken
+                                            if (token != null) {
+                                                selectedEmployerJob = employerJob
+                                                busy = true
+                                                scope.launch {
+                                                    val result = MarketplaceRepository.getEmployerApplications(token, employerJob.id)
+                                                    busy = false
+                                                    employerApplications = result.getOrNull().orEmpty()
+                                                    if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "আবেদন পাওয়া যায়নি।"
+                                                }
+                                            }
+                                        }, modifier = Modifier.fillMaxWidth()) { Text("আবেদন দেখুন") }
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(selectedEmployerJob?.title.orEmpty(), fontWeight = FontWeight.Bold)
+                            TextButton(enabled = !busy, onClick = { selectedEmployerJob = null; employerApplications = emptyList() }) { Text("কাজের তালিকায় ফিরুন") }
+                            if (busy) Text("আবেদন লোড হচ্ছে…")
+                            else if (employerApplications.isEmpty()) Text("এই কাজে এখনো কোনো আবেদন আসেনি।")
+                            employerApplications.forEach { application ->
+                                Card {
+                                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Text(application.workerName.ifBlank { "নাম দেওয়া হয়নি" }, fontWeight = FontWeight.Bold)
+                                        Text(listOf(application.district, application.upazila).filter { it.isNotBlank() }.joinToString(", "))
+                                        if (application.message.isNotBlank()) Text("বার্তা: ${application.message}")
+                                        Text("আবেদনের অবস্থা: ${application.status}")
+                                        if (application.status == "submitted") {
+                                            Button(enabled = !busy, onClick = {
+                                                val token = accessToken
+                                                if (token != null) {
+                                                    busy = true
+                                                    scope.launch {
+                                                        val result = MarketplaceRepository.selectEmployerApplication(token, application.id)
+                                                        busy = false
+                                                        jobMessage = if (result.isSuccess) "কর্মী নির্বাচন হয়েছে। অন্য আবেদনগুলো প্রত্যাখ্যাত হয়েছে।" else result.exceptionOrNull()?.message ?: "কর্মী নির্বাচন করা যায়নি।"
+                                                        val refreshed = MarketplaceRepository.getEmployerApplications(token, selectedEmployerJob?.id.orEmpty())
+                                                        employerApplications = refreshed.getOrNull().orEmpty()
+                                                    }
+                                                }
+                                            }, modifier = Modifier.fillMaxWidth()) { Text("এই কর্মীকে নির্বাচন করুন") }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(enabled = !busy, onClick = { showApplicationsDialog = false }) { Text("বন্ধ") } }
             )
         }
 
