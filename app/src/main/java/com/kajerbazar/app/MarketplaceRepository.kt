@@ -47,6 +47,17 @@ object MarketplaceRepository {
         }
     }
 
+    suspend fun updateMyProfile(token: String, fullName: String, district: String, upazila: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = JSONObject()
+                .put("p_full_name", fullName)
+                .put("p_district", district)
+                .put("p_upazila", upazila)
+            val (status, response) = request("/rest/v1/rpc/update_my_profile", token, "POST", body)
+            if (status !in 200..299) error("প্রোফাইল আপডেট হয়নি ($status): $response")
+        }
+    }
+
     suspend fun getPublishedJobsPublic(): Result<List<Job>> = withContext(Dispatchers.IO) {
         runCatching {
             val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa&status=eq.published&order=created_at.desc&limit=50"
