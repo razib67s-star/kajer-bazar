@@ -72,7 +72,11 @@ jobs:
           disable-animations: true
           script: |
             set -e
-            gradle --no-daemon connectedDebugAndroidTest
+            if ! gradle --no-daemon connectedDebugAndroidTest; then
+              echo "Instrumentation test failed; emulator logcat follows"
+              adb logcat -d -t 6000 || true
+              exit 1
+            fi
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb shell am force-stop com.kajerbazar.app.test || true
             adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity
