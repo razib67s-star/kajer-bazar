@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KajerBazarApp() {
+    val appContext = LocalContext.current.applicationContext
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(false) }
     var usePhoneOtp by remember { mutableStateOf(true) }
@@ -56,6 +58,38 @@ fun KajerBazarApp() {
         val publicJobs = MarketplaceRepository.getPublishedJobsPublic()
         jobs = publicJobs.getOrNull().orEmpty()
         jobMessage = if (publicJobs.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else publicJobs.exceptionOrNull()?.message ?: "প্রকাশিত কাজ দেখুন।"
+
+        val savedSession = withContext(Dispatchers.IO) { SessionStore.load(appContext) }
+        if (savedSession != null) {
+            val renewed = AuthRepository.refreshSession(savedSession.refreshToken)
+            val renewedToken = renewed.accessToken
+            val renewedUserId = renewed.userId
+            if (renewed.success && !renewedToken.isNullOrBlank() && !renewedUserId.isNullOrBlank()) {
+                val renewedRefresh = renewed.refreshToken ?: savedSession.refreshToken
+                val accountLabel = renewed.phone ?: renewed.email ?: savedSession.account
+                signedInAccount = accountLabel
+                accessToken = renewedToken
+                userId = renewedUserId
+                withContext(Dispatchers.IO) {
+                    SessionStore.save(appContext, SessionStore.SavedSession(renewedRefresh, renewedUserId, accountLabel))
+                }
+                val profileResult = MarketplaceRepository.getProfile(renewedToken, renewedUserId)
+                profile = profileResult.getOrNull()
+                val jobResult = MarketplaceRepository.getPublishedJobs(renewedToken)
+                jobs = jobResult.getOrNull().orEmpty()
+                if (profile?.role == "admin") {
+                    val queues = MarketplaceRepository.getAdminQueues(renewedToken)
+                    adminJobs = queues.getOrNull()?.first.orEmpty()
+                    adminEmployerRequests = queues.getOrNull()?.second.orEmpty()
+                }
+                jobMessage = if (jobResult.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else jobResult.exceptionOrNull()?.message ?: "আগের অ্যাকাউন্টে আবার প্রবেশ করা হয়েছে।"
+            } else if (renewed.sessionExpired) {
+                withContext(Dispatchers.IO) { SessionStore.clear(appContext) }
+                jobMessage = "আগের লগইন সেশনের মেয়াদ শেষ। প্রয়োজন হলে আবার লগইন করুন।"
+            } else {
+                jobMessage = "আগের সেশন যাচাই করা যায়নি। ইন্টারনেট পেলে আবার চেষ্টা করুন।"
+            }
+        }
     }
     var showEmployerForm by remember { mutableStateOf(false) }
     var showJobForm by remember { mutableStateOf(false) }
@@ -268,6 +302,7 @@ fun KajerBazarApp() {
                     if (signedInAccount != null) {
                         TextButton(onClick = {
                             signedInAccount = null; accessToken = null; userId = null; profile = null
+                            scope.launch(Dispatchers.IO) { SessionStore.clear(appContext) }
                             jobMessage = "প্রকাশিত কাজ দেখতে লগইন প্রয়োজন নেই।"; showLogin = false
                         }) { Text("লগআউট") }
                     } else {
@@ -289,6 +324,13 @@ fun KajerBazarApp() {
                                     signedInAccount = result.phone ?: result.email
                                     accessToken = result.accessToken
                                     userId = result.userId
+                                    val newRefreshToken = result.refreshToken
+                                    val accountLabel = result.phone ?: result.email ?: ""
+                                    if (!newRefreshToken.isNullOrBlank() && !result.userId.isNullOrBlank()) {
+                                        withContext(Dispatchers.IO) {
+                                            SessionStore.save(appContext, SessionStore.SavedSession(newRefreshToken, result.userId, accountLabel))
+                                        }
+                                    }
                                     otp = ""; otpSent = false
                                     showLogin = false
                                     val token = result.accessToken
