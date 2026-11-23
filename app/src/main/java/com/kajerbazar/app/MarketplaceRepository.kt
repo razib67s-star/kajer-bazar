@@ -105,12 +105,13 @@ object MarketplaceRepository {
     }
 
     suspend fun createJobForReview(
-        token: String, title: String, description: String, category: String,
+        token: String, employerId: String, title: String, description: String, category: String,
         district: String, upazila: String, wageTaka: Long
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             require(wageTaka > 0) { "মজুরি শূন্যের বেশি হতে হবে।" }
             val body = JSONObject()
+                .put("employer_id", employerId)
                 .put("title", title)
                 .put("description", description)
                 .put("category", category)
