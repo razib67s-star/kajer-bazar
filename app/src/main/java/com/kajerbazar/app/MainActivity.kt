@@ -32,6 +32,9 @@ class MainActivity : ComponentActivity() {
 fun KajerBazarApp() {
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(false) }
+    var usePhoneOtp by remember { mutableStateOf(true) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var otpSent by remember { mutableStateOf(false) }
@@ -39,7 +42,7 @@ fun KajerBazarApp() {
     var isSignUp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var authMessage by remember { mutableStateOf("") }
-    var signedInPhone by remember { mutableStateOf<String?>(null) }
+    var signedInAccount by remember { mutableStateOf<String?>(null) }
     var accessToken by remember { mutableStateOf<String?>(null) }
     var userId by remember { mutableStateOf<String?>(null) }
     var profile by remember { mutableStateOf<MarketplaceRepository.Profile?>(null) }
@@ -78,7 +81,7 @@ fun KajerBazarApp() {
                     } },
                     actions = {
                         TextButton(onClick = { showLogin = true }) {
-                            Text(if (signedInPhone == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
+                            Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Blue, titleContentColor = Color.White)
@@ -103,7 +106,7 @@ fun KajerBazarApp() {
                     Text("বাংলাদেশের কাজের বাজার", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("জেলা ও উপজেলা অনুযায়ী প্রকাশিত কাজ দেখুন। কাজ ব্রাউজ করতে অ্যাকাউন্ট প্রয়োজন নেই।")
                     Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (signedInPhone == null) "মোবাইল নম্বর দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
+                        Text(if (signedInAccount == null) "মোবাইল নম্বর দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
                 }
                 if (profile != null) {
@@ -230,78 +233,97 @@ fun KajerBazarApp() {
         if (showLogin) {
             AlertDialog(
                 onDismissRequest = { if (!busy) showLogin = false },
-                title = { Text(if (signedInPhone != null) "লগইন হয়েছে" else if (isSignUp) "নতুন অ্যাকাউন্ট খুলুন" else "মোবাইল নম্বর দিয়ে লগইন") },
+                title = { Text(if (signedInAccount != null) "লগইন হয়েছে" else if (isSignUp) "নতুন অ্যাকাউন্ট খুলুন" else "লগইন করুন") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (signedInPhone != null) {
-                            Text("লগইন করা নম্বর: $signedInPhone")
+                        if (signedInAccount != null) {
+                            Text("লগইন করা অ্যাকাউন্ট: $signedInAccount")
                             Text("নিরাপত্তার জন্য অ্যাপ বন্ধ করলে আবার লগইন করতে হতে পারে।")
                         } else {
-                            if (isSignUp && !otpSent) OutlinedTextField(value = fullName, onValueChange = { fullName = it }, enabled = !busy, label = { Text("আপনার পূর্ণ নাম") }, singleLine = true)
-                            OutlinedTextField(value = phone, onValueChange = { phone = it.filter { ch -> ch.isDigit() || ch == '+' }.take(16) }, enabled = !busy && !otpSent, label = { Text("মোবাইল নম্বর") }, placeholder = { Text("01XXXXXXXXX") }, singleLine = true)
-                            if (otpSent) OutlinedTextField(value = otp, onValueChange = { otp = it.filter(Char::isDigit).take(8) }, enabled = !busy, label = { Text("SMS-এ পাওয়া OTP কোড") }, singleLine = true)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { if (!busy) { usePhoneOtp = true; authMessage = ""; otpSent = false } }) {
+                                    Text(if (usePhoneOtp) "✓ মোবাইল OTP" else "মোবাইল OTP")
+                                }
+                                TextButton(onClick = { if (!busy) { usePhoneOtp = false; otpSent = false; authMessage = "" } }) {
+                                    Text(if (!usePhoneOtp) "✓ ইমেইল" else "ইমেইল")
+                                }
+                            }
+                            if (isSignUp && (!usePhoneOtp || !otpSent)) {
+                                OutlinedTextField(value = fullName, onValueChange = { fullName = it }, enabled = !busy, label = { Text("আপনার পূর্ণ নাম") }, singleLine = true)
+                            }
+                            if (usePhoneOtp) {
+                                OutlinedTextField(value = phone, onValueChange = { phone = it.filter { ch -> ch.isDigit() || ch == '+' }.take(16) }, enabled = !busy && !otpSent, label = { Text("মোবাইল নম্বর") }, placeholder = { Text("01XXXXXXXXX") }, singleLine = true)
+                                if (otpSent) OutlinedTextField(value = otp, onValueChange = { otp = it.filter(Char::isDigit).take(8) }, enabled = !busy, label = { Text("SMS-এ পাওয়া OTP কোড") }, singleLine = true)
+                            } else {
+                                OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !busy, label = { Text("ইমেইল ঠিকানা") }, placeholder = { Text("name@example.com") }, singleLine = true)
+                                OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !busy, label = { Text("পাসওয়ার্ড") }, singleLine = true)
+                            }
                         }
                         if (authMessage.isNotBlank()) Text(authMessage,
-                            color = if (authMessage.contains("সফল") || authMessage.contains("পাঠানোর অনুরোধ সফল")) Color(0xFF18733B) else MaterialTheme.colorScheme.error)
+                            color = if (authMessage.contains("সফল") || authMessage.contains("তৈরি হয়েছে") || authMessage.contains("পাঠানোর অনুরোধ সফল")) Color(0xFF18733B) else MaterialTheme.colorScheme.error)
                     }
                 },
                 confirmButton = {
-                    if (signedInPhone != null) {
+                    if (signedInAccount != null) {
                         TextButton(onClick = {
-                            signedInPhone = null; accessToken = null; userId = null; profile = null
+                            signedInAccount = null; accessToken = null; userId = null; profile = null
                             jobMessage = "প্রকাশিত কাজ দেখতে লগইন প্রয়োজন নেই।"; showLogin = false
                         }) { Text("লগআউট") }
                     } else {
                         TextButton(enabled = !busy, onClick = {
                             busy = true; authMessage = ""
                             scope.launch {
-                                if (!otpSent) {
-                                    val result = AuthRepository.requestOtp(phone, fullName, isSignUp)
-                                    busy = false
-                                    authMessage = result.message
-                                    if (result.success) {
-                                        phone = result.phone ?: phone
-                                        otpSent = true
+                                val result = when {
+                                    !usePhoneOtp && isSignUp -> AuthRepository.signUpEmail(email, password, fullName)
+                                    !usePhoneOtp -> AuthRepository.signInEmail(email, password)
+                                    !otpSent -> AuthRepository.requestOtp(phone, fullName, isSignUp)
+                                    else -> AuthRepository.verifyOtp(phone, otp)
+                                }
+                                busy = false
+                                authMessage = result.message
+                                if (result.success && usePhoneOtp && !otpSent) {
+                                    phone = result.phone ?: phone
+                                    otpSent = true
+                                } else if (result.success && (result.accessToken != null)) {
+                                    signedInAccount = result.phone ?: result.email
+                                    accessToken = result.accessToken
+                                    userId = result.userId
+                                    otp = ""; otpSent = false
+                                    showLogin = false
+                                    val token = result.accessToken
+                                    val id = result.userId.orEmpty()
+                                    val profileResult = MarketplaceRepository.getProfile(token, id)
+                                    profile = profileResult.getOrNull()
+                                    val jobResult = MarketplaceRepository.getPublishedJobs(token)
+                                    jobs = jobResult.getOrNull().orEmpty()
+                                    if (profile?.role == "admin") {
+                                        val queues = MarketplaceRepository.getAdminQueues(token)
+                                        adminJobs = queues.getOrNull()?.first.orEmpty()
+                                        adminEmployerRequests = queues.getOrNull()?.second.orEmpty()
                                     }
-                                } else {
-                                    val result = AuthRepository.verifyOtp(phone, otp)
-                                    busy = false
-                                    authMessage = result.message
-                                    if (result.success && result.accessToken != null) {
-                                        signedInPhone = result.phone
-                                        accessToken = result.accessToken
-                                        userId = result.userId
-                                        otp = ""
-                                        otpSent = false
-                                        showLogin = false
-                                        val token = result.accessToken
-                                        val id = result.userId.orEmpty()
-                                        val profileResult = MarketplaceRepository.getProfile(token, id)
-                                        profile = profileResult.getOrNull()
-                                        val jobResult = MarketplaceRepository.getPublishedJobs(token)
-                                        jobs = jobResult.getOrNull().orEmpty()
-                                        if (profile?.role == "admin") {
-                                            val queues = MarketplaceRepository.getAdminQueues(token)
-                                            adminJobs = queues.getOrNull()?.first.orEmpty()
-                                            adminEmployerRequests = queues.getOrNull()?.second.orEmpty()
-                                        }
-                                        jobMessage = if (jobResult.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else jobResult.exceptionOrNull()?.message ?: "কাজের তালিকা হালনাগাদ হয়েছে।"
-                                    }
+                                    jobMessage = if (jobResult.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else jobResult.exceptionOrNull()?.message ?: "কাজের তালিকা হালনাগাদ হয়েছে।"
                                 }
                             }
-                        }) { Text(if (busy) "অপেক্ষা করুন…" else if (otpSent) "OTP যাচাই করুন" else "OTP পাঠান") }
+                        }) {
+                            Text(if (busy) "অপেক্ষা করুন…" else when {
+                                !usePhoneOtp && isSignUp -> "অ্যাকাউন্ট তৈরি করুন"
+                                !usePhoneOtp -> "ইমেইল দিয়ে লগইন"
+                                otpSent -> "OTP যাচাই করুন"
+                                else -> "OTP পাঠান"
+                            })
+                        }
                     }
                 },
                 dismissButton = {
-                    if (signedInPhone == null) {
+                    if (signedInAccount == null) {
                         TextButton(enabled = !busy, onClick = {
-                            if (otpSent) {
-                                otpSent = false; otp = ""; authMessage = "মোবাইল নম্বর পরিবর্তন করতে পারেন।"
+                            if (usePhoneOtp && otpSent) {
+                                otpSent = false; otp = ""; authMessage = "মোবাইল নম্বর পরিবর্তন করতে পারেন。"
                             } else {
                                 isSignUp = !isSignUp; authMessage = ""
                             }
                         }) {
-                            Text(if (otpSent) "নম্বর পরিবর্তন" else if (isSignUp) "আগে অ্যাকাউন্ট আছে? লগইন" else "নতুন অ্যাকাউন্ট খুলুন")
+                            Text(if (usePhoneOtp && otpSent) "নম্বর পরিবর্তন" else if (isSignUp) "আগে অ্যাকাউন্ট আছে? লগইন" else "নতুন অ্যাকাউন্ট খুলুন")
                         }
                     } else TextButton(onClick = { showLogin = false }) { Text("বন্ধ") }
                 }
