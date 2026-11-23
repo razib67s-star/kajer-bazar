@@ -135,6 +135,35 @@ object MarketplaceRepository {
         val id: String, val workerName: String, val district: String, val upazila: String,
         val message: String, val status: String
     )
+    data class WorkerApplication(
+        val id: String, val jobTitle: String, val district: String, val upazila: String,
+        val wagePaisa: Long, val applicationStatus: String, val jobStatus: String
+    )
+
+    suspend fun getWorkerApplications(token: String): Result<List<WorkerApplication>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/get_worker_applications", token, "POST", JSONObject())
+            if (status !in 200..299) error("আপনার আবেদনের তালিকা পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                WorkerApplication(
+                    row.getString("application_id"), row.optString("job_title"),
+                    row.optString("district"), row.optString("upazila"),
+                    row.optLong("agreed_wage_paisa"), row.optString("application_status"),
+                    row.optString("job_status")
+                )
+            }
+        }
+    }
+
+    suspend fun withdrawWorkerApplication(token: String, applicationId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/withdraw_job_application", token, "POST",
+                JSONObject().put("p_application_id", applicationId))
+            if (status !in 200..299) error("আবেদন প্রত্যাহার করা যায়নি ($status): $body")
+        }
+    }
 
     suspend fun getEmployerJobs(token: String, employerId: String): Result<List<EmployerJob>> = withContext(Dispatchers.IO) {
         runCatching {
