@@ -22,6 +22,27 @@ import kotlinx.coroutines.withContext
 
 private val Blue = Color(0xFF145DA0)
 
+private fun jobStatusLabel(status: String): String = when (status) {
+    "draft" -> "খসড়া"
+    "pending_review" -> "অনুমোদনের অপেক্ষায়"
+    "published" -> "প্রকাশিত"
+    "paused" -> "বিরত"
+    "closed" -> "বন্ধ"
+    "in_progress" -> "চলমান"
+    "completed" -> "সম্পন্ন"
+    "disputed" -> "বিরোধে"
+    "admin_review" -> "অ্যাডমিন পর্যালোচনায়"
+    else -> status
+}
+
+private fun applicationStatusLabel(status: String): String = when (status) {
+    "submitted" -> "জমা হয়েছে"
+    "withdrawn" -> "প্রত্যাহার করা হয়েছে"
+    "selected" -> "নির্বাচিত"
+    "rejected" -> "প্রত্যাখ্যাত"
+    else -> status
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -429,7 +450,7 @@ fun KajerBazarApp() {
                                     Text(application.jobTitle, fontWeight = FontWeight.Bold)
                                     Text("${application.district}${if (application.upazila.isNotBlank()) ", ${application.upazila}" else ""}")
                                     Text("মজুরি: ৳${application.wagePaisa / 100}")
-                                    Text("আবেদন: ${application.applicationStatus} • কাজ: ${application.jobStatus}")
+                                    Text("আবেদন: ${applicationStatusLabel(application.applicationStatus)} • কাজ: ${jobStatusLabel(application.jobStatus)}")
                                     if (application.applicationStatus == "submitted") {
                                         OutlinedButton(enabled = !busy, onClick = {
                                             val token = accessToken
@@ -471,7 +492,7 @@ fun KajerBazarApp() {
                                 Card {
                                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                         Text(employerJob.title, fontWeight = FontWeight.Bold)
-                                        Text("অবস্থা: ${employerJob.status}")
+                                        Text("অবস্থা: ${jobStatusLabel(employerJob.status)}")
                                         OutlinedButton(enabled = !busy, onClick = {
                                             val token = accessToken
                                             if (token != null) {
@@ -499,7 +520,7 @@ fun KajerBazarApp() {
                                         Text(application.workerName.ifBlank { "নাম দেওয়া হয়নি" }, fontWeight = FontWeight.Bold)
                                         Text(listOf(application.district, application.upazila).filter { it.isNotBlank() }.joinToString(", "))
                                         if (application.message.isNotBlank()) Text("বার্তা: ${application.message}")
-                                        Text("আবেদনের অবস্থা: ${application.status}")
+                                        Text("আবেদনের অবস্থা: ${applicationStatusLabel(application.status)}")
                                         if (application.status == "submitted") {
                                             Button(enabled = !busy, onClick = {
                                                 val token = accessToken
