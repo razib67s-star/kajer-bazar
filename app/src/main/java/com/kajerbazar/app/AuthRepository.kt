@@ -13,7 +13,9 @@ object AuthRepository {
         val accessToken: String? = null,
         val phone: String? = null,
         val userId: String? = null,
-        val email: String? = null
+        val email: String? = null,
+        val refreshToken: String? = null,
+        val sessionExpired: Boolean = false
     )
 
     private fun normalizeBangladeshPhone(input: String): String? {
@@ -76,7 +78,14 @@ object AuthRepository {
             val (status, json) = request("/auth/v1/verify", body)
             val token = json.optString("access_token")
             if (status in 200..299 && token.isNotBlank()) {
-                AuthResult(true, "লগইন সফল হয়েছে।", token, phone, json.optJSONObject("user")?.optString("id"))
+                AuthResult(
+                    success = true,
+                    message = "লগইন সফল হয়েছে।",
+                    accessToken = token,
+                    phone = phone,
+                    userId = json.optJSONObject("user")?.optString("id"),
+                    refreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() }
+                )
             } else {
                 val message = json.optString("msg", json.optString("message", json.optString("error_description", "")))
                 AuthResult(false, when (status) {
@@ -100,7 +109,7 @@ object AuthRepository {
             val (status, json) = request("/auth/v1/signup", body)
             val token = json.optString("access_token")
             if (status in 200..299) {
-                if (token.isNotBlank()) AuthResult(true, "অ্যাকাউন্ট তৈরি ও লগইন সফল হয়েছে।", token, userId = json.optJSONObject("user")?.optString("id"), email = email)
+                if (token.isNotBlank()) AuthResult(true, "অ্যাকাউন্ট তৈরি ও লগইন সফল হয়েছে।", token, userId = json.optJSONObject("user")?.optString("id"), email = email, refreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() })
                 else AuthResult(true, "অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলে যাচাইয়ের লিংক এলে সেটি খুলে তারপর লগইন করুন।", email = email)
             } else {
                 val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
@@ -117,7 +126,7 @@ object AuthRepository {
             val (status, json) = request("/auth/v1/token?grant_type=password", JSONObject().put("email", email).put("password", password))
             val token = json.optString("access_token")
             if (status in 200..299 && token.isNotBlank()) {
-                AuthResult(true, "ইমেইল দিয়ে লগইন সফল হয়েছে।", token, userId = json.optJSONObject("user")?.optString("id"), email = email)
+                AuthResult(true, "ইমেইল দিয়ে লগইন সফল হয়েছে।", token, userId = json.optJSONObject("user")?.optString("id"), email = email, refreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() })
             } else {
                 val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
                 AuthResult(false, when (status) {
@@ -127,6 +136,38 @@ object AuthRepository {
                 })
             }
         } catch (_: Exception) { AuthResult(false, "লগইন সার্ভারে সংযোগ করা যায়নি।") }
+    }
+
+
+    suspend fun refreshSession(refreshTokenInput: String): AuthResult = withContext(Dispatchers.IO) {
+        if (refreshTokenInput.isBlank()) return@withContext AuthResult(false, "সেশন টোকেন পাওয়া যায়নি।", sessionExpired = true)
+        try {
+            val (status, json) = request(
+                "/auth/v1/token?grant_type=refresh_token",
+                JSONObject().put("refresh_token", refreshTokenInput)
+            )
+            val token = json.optString("access_token")
+            if (status in 200..299 && token.isNotBlank()) {
+                val user = json.optJSONObject("user")
+                AuthResult(
+                    success = true,
+                    message = "সেশন পুনরুদ্ধার হয়েছে।",
+                    accessToken = token,
+                    phone = user?.optString("phone")?.takeIf { it.isNotBlank() },
+                    userId = user?.optString("id")?.takeIf { it.isNotBlank() },
+                    email = user?.optString("email")?.takeIf { it.isNotBlank() },
+                    refreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() }
+                )
+            } else {
+                AuthResult(
+                    false,
+                    if (status in 400..403) "সেশনের মেয়াদ শেষ। আবার লগইন করুন।" else "সেশন যাচাই করা যায়নি ($status)।",
+                    sessionExpired = status in 400..403
+                )
+            }
+        } catch (_: Exception) {
+            AuthResult(false, "সার্ভারে সংযোগ হয়নি; পরে আবার চেষ্টা করুন।")
+        }
     }
 
 }
