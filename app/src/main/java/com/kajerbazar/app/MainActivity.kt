@@ -106,7 +106,7 @@ fun KajerBazarApp() {
                     Text("বাংলাদেশের কাজের বাজার", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("জেলা ও উপজেলা অনুযায়ী প্রকাশিত কাজ দেখুন। কাজ ব্রাউজ করতে অ্যাকাউন্ট প্রয়োজন নেই।")
                     Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (signedInAccount == null) "মোবাইল নম্বর দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
+                        Text(if (signedInAccount == null) "ইমেইল বা মোবাইল দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
                 }
                 if (profile != null) {
