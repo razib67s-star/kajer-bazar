@@ -217,7 +217,9 @@ object MarketplaceRepository {
     data class EmployerJob(val id: String, val title: String, val status: String)
     data class EmployerApplication(
         val id: String, val workerName: String, val district: String, val upazila: String,
-        val message: String, val status: String
+        val message: String, val status: String,
+        val workType: String, val skills: String, val experience: String,
+        val availability: String, val expectedWage: String, val avatarUrl: String
     )
     data class WorkerApplication(
         val id: String, val jobTitle: String, val district: String, val upazila: String,
@@ -272,7 +274,10 @@ object MarketplaceRepository {
                 EmployerApplication(
                     row.getString("application_id"), row.optString("worker_name"),
                     row.optString("worker_district"), row.optString("worker_upazila"),
-                    row.optString("message"), row.optString("status")
+                    row.optString("message"), row.optString("status"),
+                    row.optString("worker_work_type"), row.optString("worker_skills"),
+                    row.optString("worker_experience"), row.optString("worker_availability"),
+                    row.optString("worker_expected_wage"), row.optString("worker_avatar_url")
                 )
             }
         }
