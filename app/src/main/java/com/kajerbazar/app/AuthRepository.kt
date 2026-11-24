@@ -111,12 +111,43 @@ object AuthRepository {
             val token = json.optString("access_token")
             if (status in 200..299) {
                 if (token.isNotBlank()) AuthResult(true, "অ্যাকাউন্ট তৈরি ও লগইন সফল হয়েছে।", token, userId = json.optJSONObject("user")?.optString("id"), email = email, refreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() })
-                else AuthResult(true, "অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলে যাচাইয়ের লিংক এলে সেটি খুলে তারপর লগইন করুন।", email = email)
+                else AuthResult(true, "ইমেইলে ৬ সংখ্যার যাচাইকরণ কোড পাঠানো হয়েছে। কোডটি লিখুন।", email = email)
             } else {
                 val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
                 AuthResult(false, if (status == 429) "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।" else "অ্যাকাউন্ট তৈরি করা যায়নি। $msg")
             }
         } catch (_: Exception) { AuthResult(false, "সার্ভারে সংযোগ করা যায়নি। ইন্টারনেট পরীক্ষা করুন।") }
+    }
+
+    suspend fun verifyEmailOtp(emailInput: String, otpInput: String): AuthResult = withContext(Dispatchers.IO) {
+        val email = emailInput.trim().lowercase()
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
+        val otp = otpInput.filter(Char::isDigit)
+        if (otp.length != 6) return@withContext AuthResult(false, "ইমেইলে পাওয়া ৬ সংখ্যার কোড লিখুন।")
+        try {
+            val body = JSONObject().put("email", email).put("token", otp).put("type", "signup")
+            val (status, json) = request("/auth/v1/verify", body)
+            val token = json.optString("access_token")
+            if (status in 200..299 && token.isNotBlank()) {
+                AuthResult(
+                    success = true,
+                    message = "ইমেইল যাচাই ও লগইন সফল হয়েছে।",
+                    accessToken = token,
+                    userId = json.optJSONObject("user")?.optString("id"),
+                    email = email,
+                    refreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() }
+                )
+            } else {
+                val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
+                AuthResult(false, when (status) {
+                    400, 401, 422 -> "কোডটি ভুল অথবা মেয়াদ শেষ হয়েছে। আবার চেষ্টা করুন।"
+                    429 -> "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ অপেক্ষা করুন।"
+                    else -> "ইমেইল কোড যাচাই করা যায়নি ($status)। $msg"
+                })
+            }
+        } catch (_: Exception) {
+            AuthResult(false, "ইমেইল কোড যাচাই সার্ভারে সংযোগ করা যায়নি।")
+        }
     }
 
     suspend fun signInEmail(emailInput: String, password: String): AuthResult = withContext(Dispatchers.IO) {
