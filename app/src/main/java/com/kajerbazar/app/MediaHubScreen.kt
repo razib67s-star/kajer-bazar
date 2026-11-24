@@ -53,9 +53,9 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                 if (bitmap != null) ByteArrayOutputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 88, out); out.toByteArray() }
                 else context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("ফাইলটি পড়া যায়নি।")
             }
-            val limit = if (mime.startsWith("video/")) 100 * 1024 * 1024 else 8 * 1024 * 1024
+            val limit = if (mime.startsWith("video/")) 50 * 1024 * 1024 else 8 * 1024 * 1024
             require(bytes.isNotEmpty() && bytes.size <= limit) {
-                if (mime.startsWith("video/")) "ভিডিও সর্বোচ্চ ১০০ MB হতে হবে।" else "ছবি সর্বোচ্চ ৮ MB হতে হবে।"
+                if (mime.startsWith("video/")) "ভিডিও সর্বোচ্চ ৫০ MB হতে হবে।" else "ছবি সর্বোচ্চ ৮ MB হতে হবে।"
             }
             MediaRepository.upload(auth, uid, bytes, mime, caption)
         }
