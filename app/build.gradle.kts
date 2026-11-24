@@ -12,8 +12,8 @@ android {
         applicationId = "com.kajerbazar.app"
         minSdk = 23
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", "\"https://pdofivhvnofjhozjudji.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_tNW2_Msxl5Hv1vH0iFOvgw__YO8gvBP\"")
