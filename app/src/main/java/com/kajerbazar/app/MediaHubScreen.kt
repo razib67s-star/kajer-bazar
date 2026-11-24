@@ -73,7 +73,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
         if (image != null) scope.launch { publish(Uri.EMPTY, true, image) }
     }
     var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
-    val recordVideo = rememberLauncherForActivityResult(ActivityResultContracts.TakeVideo()) { saved ->
+    val recordVideo = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { saved ->
         val uri = pendingVideoUri
         pendingVideoUri = null
         if (saved && uri != null) scope.launch { publish(uri, mimeOverride = "video/mp4") }
