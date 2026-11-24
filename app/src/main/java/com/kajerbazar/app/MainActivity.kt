@@ -141,6 +141,14 @@ fun KajerBazarApp() {
     var profileWorkType by remember { mutableStateOf("") }
     var profileSkills by remember { mutableStateOf("") }
     var profileAvatarUrl by remember { mutableStateOf("") }
+    var profileOrganizationName by remember { mutableStateOf("") }
+    var profileOrganizationType by remember { mutableStateOf("") }
+    var profileOrganizationDetails by remember { mutableStateOf("") }
+    var profileContactPerson by remember { mutableStateOf("") }
+    var profileExperience by remember { mutableStateOf("") }
+    var profileAvailability by remember { mutableStateOf("") }
+    var profileExpectedWage by remember { mutableStateOf("") }
+    var profilePortfolio by remember { mutableStateOf("") }
     var showMyApplicationsDialog by remember { mutableStateOf(false) }
     var myApplications by remember { mutableStateOf<List<MarketplaceRepository.WorkerApplication>>(emptyList()) }
     var showApplicationsDialog by remember { mutableStateOf(false) }
@@ -251,7 +259,21 @@ fun KajerBazarApp() {
                                 }
                                 Text("নাম: ${profile?.fullName?.ifBlank { "নাম যোগ করা হয়নি" }}")
                                 Text("মোবাইল: ${profile?.contactPhone?.ifBlank { profile?.authPhone?.ifBlank { "যোগ করা হয়নি" } ?: "যোগ করা হয়নি" }}")
-                                Text("কাজের ধরন: ${profile?.workType?.ifBlank { "যোগ করা হয়নি" }}")
+                                if (profile?.role == "employer") {
+                                    Text("কাজদাতার ব্যবসা / প্রতিষ্ঠান", fontWeight = FontWeight.Bold, color = Blue)
+                                    Text("প্রতিষ্ঠান: ${profile?.organizationName?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("ধরন: ${profile?.organizationType?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("যোগাযোগকারী: ${profile?.contactPerson?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("প্রতিষ্ঠান পরিচিতি: ${profile?.organizationDetails?.ifBlank { "যোগ করা হয়নি" }}")
+                                } else if (profile?.role == "worker") {
+                                    Text("কর্মীর দক্ষতা প্রোফাইল", fontWeight = FontWeight.Bold, color = Blue)
+                                    Text("কাজের ধরন: ${profile?.workType?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("অভিজ্ঞতা: ${profile?.experience?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("কাজের সময়: ${profile?.availability?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("প্রত্যাশিত মজুরি: ${profile?.expectedWage?.ifBlank { "আলোচনা সাপেক্ষ" }}")
+                                    Text("কাজের নমুনা / পোর্টফোলিও: ${profile?.portfolio?.ifBlank { "যোগ করা হয়নি" }}")
+                                    Text("দক্ষতা: ${profile?.skills?.ifBlank { "যোগ করা হয়নি" }}")
+                                }
                                 OutlinedButton(onClick = {
                                     profileFullName = profile?.fullName.orEmpty()
                                     profileDistrict = profile?.district.orEmpty()
@@ -262,6 +284,14 @@ fun KajerBazarApp() {
                                     profileWorkType = profile?.workType.orEmpty()
                                     profileSkills = profile?.skills.orEmpty()
                                     profileAvatarUrl = profile?.avatarUrl.orEmpty()
+                                    profileOrganizationName = profile?.organizationName.orEmpty()
+                                    profileOrganizationType = profile?.organizationType.orEmpty()
+                                    profileOrganizationDetails = profile?.organizationDetails.orEmpty()
+                                    profileContactPerson = profile?.contactPerson.orEmpty()
+                                    profileExperience = profile?.experience.orEmpty()
+                                    profileAvailability = profile?.availability.orEmpty()
+                                    profileExpectedWage = profile?.expectedWage.orEmpty()
+                                    profilePortfolio = profile?.portfolio.orEmpty()
                                     showProfileForm = true
                                 }, modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল সম্পাদনা করুন") }
                                 Text("অ্যাকাউন্ট: ${if (profile?.role == "employer") "কাজদাতা" else "কর্মী"}")
@@ -593,8 +623,31 @@ fun KajerBazarApp() {
                             label = { Text("উপজেলা") }, singleLine = true)
                         OutlinedTextField(profileWorkType, { profileWorkType = it.take(100) }, enabled = !busy,
                             label = { Text("কোন ধরনের কাজ খুঁজছেন / দেন?") }, singleLine = true)
-                        OutlinedTextField(profileSkills, { profileSkills = it.take(1000) }, enabled = !busy,
-                            label = { Text("দক্ষতা ও অভিজ্ঞতা") }, minLines = 3)
+                        if (profile?.role == "employer") {
+                            Text("কাজদাতা / প্রতিষ্ঠানের পরিচিতি", fontWeight = FontWeight.Bold, color = Blue)
+                            OutlinedTextField(profileOrganizationName, { profileOrganizationName = it.take(160) }, enabled = !busy,
+                                label = { Text("প্রতিষ্ঠান বা ব্যবসার নাম") }, singleLine = true)
+                            OutlinedTextField(profileOrganizationType, { profileOrganizationType = it.take(100) }, enabled = !busy,
+                                label = { Text("প্রতিষ্ঠানের ধরন (দোকান, কোম্পানি, ব্যক্তিগত)") }, singleLine = true)
+                            OutlinedTextField(profileContactPerson, { profileContactPerson = it.take(100) }, enabled = !busy,
+                                label = { Text("যোগাযোগের দায়িত্বে") }, singleLine = true)
+                            OutlinedTextField(profileOrganizationDetails, { profileOrganizationDetails = it.take(1500) }, enabled = !busy,
+                                label = { Text("প্রতিষ্ঠান ও কী ধরনের কাজ দেন") }, minLines = 3)
+                        } else {
+                            Text("কর্মীর কাজের প্রোফাইল", fontWeight = FontWeight.Bold, color = Blue)
+                            OutlinedTextField(profileWorkType, { profileWorkType = it.take(100) }, enabled = !busy,
+                                label = { Text("কোন ধরনের কাজ খুঁজছেন") }, singleLine = true)
+                            OutlinedTextField(profileSkills, { profileSkills = it.take(1000) }, enabled = !busy,
+                                label = { Text("দক্ষতা ও কাজের অভিজ্ঞতা") }, minLines = 3)
+                            OutlinedTextField(profileExperience, { profileExperience = it.take(1000) }, enabled = !busy,
+                                label = { Text("আগের কাজের অভিজ্ঞতা") }, minLines = 2)
+                            OutlinedTextField(profileAvailability, { profileAvailability = it.take(100) }, enabled = !busy,
+                                label = { Text("কখন কাজ করতে পারবেন") }, singleLine = true)
+                            OutlinedTextField(profileExpectedWage, { profileExpectedWage = it.take(100) }, enabled = !busy,
+                                label = { Text("প্রত্যাশিত মজুরি (ঐচ্ছিক)") }, singleLine = true)
+                            OutlinedTextField(profilePortfolio, { profilePortfolio = it.take(1500) }, enabled = !busy,
+                                label = { Text("কাজের নমুনা / পোর্টফোলিও (ঐচ্ছিক)") }, minLines = 2)
+                        }
                         Text("পূর্ণ নাম আবশ্যক। ছবি JPG, PNG বা WebP; সর্বোচ্চ ৩ MB।")
                     }
                 },
@@ -620,8 +673,19 @@ fun KajerBazarApp() {
                                     profileSkills.trim(),
                                     profileAvatarUrl.trim()
                                 )
+                                val roleResult = if (result.isSuccess) MarketplaceRepository.updateRoleProfile(
+                                    token,
+                                    profileOrganizationName.trim(),
+                                    profileOrganizationType.trim(),
+                                    profileOrganizationDetails.trim(),
+                                    profileContactPerson.trim(),
+                                    profileExperience.trim(),
+                                    profileAvailability.trim(),
+                                    profileExpectedWage.trim(),
+                                    profilePortfolio.trim()
+                                ) else Result.failure(result.exceptionOrNull() ?: IllegalStateException("প্রোফাইল আপডেট হয়নি।"))
                                 busy = false
-                                if (result.isSuccess) {
+                                if (result.isSuccess && roleResult.isSuccess) {
                                     profile = profile?.copy(
                                         fullName = profileFullName.trim(),
                                         district = profileDistrict.trim(),
@@ -631,12 +695,21 @@ fun KajerBazarApp() {
                                         permanentAddress = profilePermanentAddress.trim(),
                                         workType = profileWorkType.trim(),
                                         skills = profileSkills.trim(),
-                                        avatarUrl = profileAvatarUrl.trim()
+                                        avatarUrl = profileAvatarUrl.trim(),
+                                        organizationName = profileOrganizationName.trim(),
+                                        organizationType = profileOrganizationType.trim(),
+                                        organizationDetails = profileOrganizationDetails.trim(),
+                                        contactPerson = profileContactPerson.trim(),
+                                        experience = profileExperience.trim(),
+                                        availability = profileAvailability.trim(),
+                                        expectedWage = profileExpectedWage.trim(),
+                                        portfolio = profilePortfolio.trim()
                                     )
                                     jobMessage = "প্রোফাইল আপডেট হয়েছে।"
                                     showProfileForm = false
                                 } else {
-                                    jobMessage = result.exceptionOrNull()?.message ?: "প্রোফাইল আপডেট হয়নি।"
+                                    jobMessage = if (result.isFailure) result.exceptionOrNull()?.message ?: "প্রোফাইল আপডেট হয়নি।"
+                                        else roleResult.exceptionOrNull()?.message ?: "ভূমিকা অনুযায়ী প্রোফাইল আপডেট হয়নি।"
                                 }
                             }
                         }
