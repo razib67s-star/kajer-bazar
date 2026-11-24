@@ -9,7 +9,11 @@ import java.net.URL
 import java.net.URLEncoder
 
 object MarketplaceRepository {
-    data class Profile(val fullName: String, val role: String, val district: String, val upazila: String)
+    data class Profile(
+        val fullName: String, val role: String, val district: String, val upazila: String,
+        val contactPhone: String, val currentAddress: String, val permanentAddress: String,
+        val workType: String, val skills: String, val avatarUrl: String
+    )
     data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long)
 
     private fun request(path: String, token: String?, method: String = "GET", body: JSONObject? = null, prefer: String = "return=minimal"): Pair<Int, String> {
@@ -37,26 +41,67 @@ object MarketplaceRepository {
 
     suspend fun getProfile(token: String, userId: String): Result<Profile> = withContext(Dispatchers.IO) {
         runCatching {
-            val path = "/rest/v1/profiles?select=full_name,role,district,upazila&id=eq.${URLEncoder.encode(userId, "UTF-8")}"
+            val path = "/rest/v1/profiles?select=full_name,role,district,upazila,contact_phone,current_address,permanent_address,work_type,skills,avatar_url&id=eq.${URLEncoder.encode(userId, "UTF-8")}"
             val (status, body) = request(path, token)
             if (status !in 200..299) error("প্রোফাইল পাওয়া যায়নি ($status)")
             val rows = JSONArray(body)
             if (rows.length() == 0) error("আপনার প্রোফাইল তৈরি হয়নি।")
             val row = rows.getJSONObject(0)
-            Profile(row.optString("full_name"), row.optString("role", "worker"), row.optString("district"), row.optString("upazila"))
+            Profile(
+                row.optString("full_name"), row.optString("role", "worker"),
+                row.optString("district"), row.optString("upazila"),
+                row.optString("contact_phone"), row.optString("current_address"),
+                row.optString("permanent_address"), row.optString("work_type"),
+                row.optString("skills"), row.optString("avatar_url")
+            )
         }
     }
 
-    suspend fun updateMyProfile(token: String, fullName: String, district: String, upazila: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun updateMyProfile(
+        token: String, fullName: String, contactPhone: String, district: String, upazila: String,
+        currentAddress: String, permanentAddress: String, workType: String, skills: String, avatarUrl: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val body = JSONObject()
                 .put("p_full_name", fullName)
+                .put("p_contact_phone", contactPhone)
                 .put("p_district", district)
                 .put("p_upazila", upazila)
+                .put("p_current_address", currentAddress)
+                .put("p_permanent_address", permanentAddress)
+                .put("p_work_type", workType)
+                .put("p_skills", skills)
+                .put("p_avatar_url", avatarUrl)
             val (status, response) = request("/rest/v1/rpc/update_my_profile", token, "POST", body)
             if (status !in 200..299) error("প্রোফাইল আপডেট হয়নি ($status): $response")
         }
     }
+
+    suspend fun uploadAvatar(token: String, userId: String, bytes: ByteArray, mimeType: String, extension: String): String =
+        withContext(Dispatchers.IO) {
+            require(bytes.isNotEmpty() && bytes.size <= 3 * 1024 * 1024) { "ছবির আকার ৩ MB-এর মধ্যে হতে হবে।" }
+            require(mimeType in setOf("image/jpeg", "image/png", "image/webp")) { "শুধু JPG, PNG অথবা WebP ছবি ব্যবহার করুন।" }
+            val path = "/storage/v1/object/avatars/$userId/profile.$extension"
+            val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
+            try {
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 20000
+                connection.readTimeout = 20000
+                connection.doOutput = true
+                connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.setRequestProperty("Content-Type", mimeType)
+                connection.setRequestProperty("x-upsert", "true")
+                connection.outputStream.use { it.write(bytes) }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (status !in 200..299) error("ছবি আপলোড হয়নি ($status): $response")
+                BuildConfig.SUPABASE_URL.trimEnd() + "/storage/v1/object/public/avatars/$userId/profile.$extension"
+            } finally {
+                connection.disconnect()
+            }
+        }
 
     suspend fun getPublishedJobsPublic(): Result<List<Job>> = withContext(Dispatchers.IO) {
         runCatching {
