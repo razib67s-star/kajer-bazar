@@ -113,11 +113,14 @@ fun KajerBazarApp() {
     var districtFilter by remember { mutableStateOf("") }
     var upazilaFilter by remember { mutableStateOf("") }
     var categoryFilter by remember { mutableStateOf("") }
+    var savedJobIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showSavedOnly by remember { mutableStateOf(false) }
     val filteredJobs = jobs.filter { job ->
         (jobSearch.isBlank() || listOf(job.title, job.description, job.category, job.district, job.upazila).any { it.contains(jobSearch.trim(), ignoreCase = true) }) &&
         (districtFilter.isBlank() || job.district.contains(districtFilter.trim(), ignoreCase = true)) &&
         (upazilaFilter.isBlank() || job.upazila.contains(upazilaFilter.trim(), ignoreCase = true)) &&
-        (categoryFilter.isBlank() || job.category.contains(categoryFilter.trim(), ignoreCase = true))
+        (categoryFilter.isBlank() || job.category.contains(categoryFilter.trim(), ignoreCase = true)) &&
+        (!showSavedOnly || job.id in savedJobIds)
     }
     LaunchedEffect(Unit) {
         connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
@@ -161,6 +164,16 @@ fun KajerBazarApp() {
             } else {
                 jobMessage = "আগের সেশন যাচাই করা যায়নি। ইন্টারনেট পেলে আবার চেষ্টা করুন।"
             }
+        }
+    }
+    LaunchedEffect(accessToken, userId, profile?.role) {
+        val token = accessToken
+        val id = userId
+        if (token != null && id != null && profile?.role == "worker") {
+            savedJobIds = MarketplaceRepository.getSavedJobIds(token, id).getOrNull().orEmpty()
+        } else if (token == null) {
+            savedJobIds = emptySet()
+            showSavedOnly = false
         }
     }
     var showProfileForm by remember { mutableStateOf(false) }
@@ -637,6 +650,11 @@ fun KajerBazarApp() {
                             modifier = Modifier.fillMaxWidth(), singleLine = true,
                             label = { Text("কাজের বিভাগ") }
                         )
+                        if (profile?.role == "worker") {
+                            OutlinedButton(onClick = { showSavedOnly = !showSavedOnly }, modifier = Modifier.fillMaxWidth()) {
+                                Text(if (showSavedOnly) "সব কাজ দেখুন" else "সংরক্ষিত কাজ দেখুন (${savedJobIds.size})")
+                            }
+                        }
                         Text("দেখানো হচ্ছে: ${filteredJobs.size}টি কাজ", style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -653,6 +671,24 @@ fun KajerBazarApp() {
                                 Text("${job.category} • ${job.district}${if (job.upazila.isNotBlank()) ", ${job.upazila}" else ""}")
                                 Text(job.description, maxLines = 4)
                                 Text("কর্মীর মজুরি: ৳${job.wagePaisa / 100}", color = Blue, fontWeight = FontWeight.Bold)
+                                if (profile?.role == "worker") {
+                                    OutlinedButton(enabled = !busy, onClick = {
+                                        val token = accessToken
+                                        val id = userId
+                                        if (token != null && id != null) scope.launch {
+                                            val shouldSave = job.id !in savedJobIds
+                                            val result = MarketplaceRepository.setJobSaved(token, id, job.id, shouldSave)
+                                            if (result.isSuccess) {
+                                                savedJobIds = if (shouldSave) savedJobIds + job.id else savedJobIds - job.id
+                                                jobMessage = if (shouldSave) "কাজটি সংরক্ষিত হয়েছে।" else "সংরক্ষিত তালিকা থেকে সরানো হয়েছে।"
+                                            } else {
+                                                jobMessage = result.exceptionOrNull()?.message ?: "কাজ সংরক্ষণ করা যায়নি।"
+                                            }
+                                        }
+                                    }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(if (job.id in savedJobIds) "★ সংরক্ষিত — সরাতে চাপ দিন" else "☆ কাজটি সংরক্ষণ করুন")
+                                    }
+                                }
                                 if (profile?.role == "worker") {
                                     Button(onClick = {
                                         val token = accessToken
