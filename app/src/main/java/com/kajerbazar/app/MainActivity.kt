@@ -621,6 +621,7 @@ fun KajerBazarApp() {
                         }
                     }
                 }
+                if (selectedPage == "profile" && profile != null) item { MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true }) }
                 if (selectedPage == "profile" && profile == null) item {
                     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("আপনার প্রোফাইল", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
