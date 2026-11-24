@@ -130,7 +130,6 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                             VideoView(ctx).apply {
                                 setMediaController(MediaController(ctx))
                                 setVideoURI(Uri.parse(post.url))
-                                setOnPreparedListener { start() }
                             }
                         }, modifier = Modifier.fillMaxWidth().height(220.dp))
                     } else {
