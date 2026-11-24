@@ -412,6 +412,7 @@ fun KajerBazarApp() {
                         selectedPage = "activity"
                         scope.launch { mainListState.animateScrollToItem(0) }
                     }, icon = { Icon(Icons.Default.ListAlt, contentDescription = null) }, label = { Text("কার্যক্রম") })
+                    NavigationBarItem(selected = selectedPage == "media", onClick = { selectedPage = "media"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("ভিডিও") })
                     NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
                 }
             }
@@ -421,6 +422,9 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (selectedPage == "media") item {
+                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
                 if (selectedPage == "activity") item {
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
