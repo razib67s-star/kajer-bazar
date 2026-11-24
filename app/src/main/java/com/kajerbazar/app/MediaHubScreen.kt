@@ -99,6 +99,25 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                 Text("আপনার পোস্ট", fontWeight = FontWeight.Bold)
                 OutlinedTextField(caption, { caption = it.take(500) }, modifier = Modifier.fillMaxWidth(),
                     label = { Text("আপনার কথা লিখুন…") }, minLines = 2)
+                Button(
+                    onClick = {
+                        val auth = token
+                        val uid = userId
+                        if (auth == null || uid == null) onLogin() else scope.launch {
+                            busy = true
+                            status = "পোস্ট প্রকাশ হচ্ছে…"
+                            val result = MediaRepository.publishText(auth, uid, caption)
+                            busy = false
+                            if (result.isSuccess) {
+                                caption = ""
+                                status = "আপনার লেখা পোস্ট প্রকাশ হয়েছে।"
+                                refresh()
+                            } else status = result.exceptionOrNull()?.message ?: "পোস্ট প্রকাশ হয়নি।"
+                        }
+                    },
+                    enabled = !busy && caption.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("📝 লেখা পোস্ট প্রকাশ করুন") }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(onClick = { if (token == null) onLogin() else camera.launch(null) },
                         enabled = !busy, modifier = Modifier.weight(1f)) { Text("📷 ছবি তুলুন") }
@@ -215,14 +234,15 @@ private fun MediaPostCard(
                     Text(post.authorName.ifBlank { "ব্যবহারকারী" }, fontWeight = FontWeight.Bold)
                     Text(post.createdAt.take(16).replace("T", " "), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                 }
-                Text(if (post.mediaType == "video") "ভিডিও" else "ছবি", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(when (post.mediaType) { "video" -> "ভিডিও"; "image" -> "ছবি"; else -> "লেখা পোস্ট" },
+                style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             }
             if (post.caption.isNotBlank()) Text(post.caption, style = MaterialTheme.typography.bodyLarge)
             if (post.mediaType == "video") {
                 AndroidView(factory = { ctx ->
                     VideoView(ctx).apply { setMediaController(MediaController(ctx)); setVideoURI(Uri.parse(post.url)) }
                 }, modifier = Modifier.fillMaxWidth().height(230.dp))
-            } else {
+            } else if (post.mediaType == "image") {
                 AsyncImage(model = post.url, contentDescription = "কমিউনিটি পোস্টের ছবি",
                     modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 420.dp),
                     contentScale = ContentScale.Crop)
