@@ -168,6 +168,30 @@ object MarketplaceRepository {
         }
     }
 
+    suspend fun getSavedJobIds(token: String, userId: String): Result<Set<String>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val uid = URLEncoder.encode(userId, "UTF-8")
+            val (status, body) = request("/rest/v1/saved_jobs?select=job_id&user_id=eq.$uid&order=created_at.desc&limit=200", token)
+            if (status !in 200..299) error("সংরক্ষিত কাজ পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i -> rows.getJSONObject(i).getString("job_id") }.toSet()
+        }
+    }
+
+    suspend fun setJobSaved(token: String, userId: String, jobId: String, saved: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val uid = URLEncoder.encode(userId, "UTF-8")
+            val jid = URLEncoder.encode(jobId, "UTF-8")
+            val result = if (saved) {
+                request("/rest/v1/saved_jobs", token, "POST",
+                    JSONObject().put("user_id", userId).put("job_id", jobId))
+            } else {
+                request("/rest/v1/saved_jobs?user_id=eq.$uid&job_id=eq.$jid", token, "DELETE")
+            }
+            if (result.first !in 200..299) error("সংরক্ষিত কাজ হালনাগাদ হয়নি (${result.first}): ${result.second}")
+        }
+    }
+
     suspend fun applyToJob(token: String, jobId: String, message: String = ""): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val body = JSONObject().put("job_id", jobId)
