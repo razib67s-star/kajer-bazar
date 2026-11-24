@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ListAlt
@@ -412,6 +413,7 @@ fun KajerBazarApp() {
                         selectedPage = "activity"
                         scope.launch { mainListState.animateScrollToItem(0) }
                     }, icon = { Icon(Icons.Default.ListAlt, contentDescription = null) }, label = { Text("কার্যক্রম") })
+                    NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("মেসেজ") })
                     NavigationBarItem(selected = selectedPage == "media", onClick = { selectedPage = "media"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("ভিডিও") })
                     NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
                 }
@@ -422,6 +424,9 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (selectedPage == "messages") item {
+                    MessagesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
                 if (selectedPage == "media") item {
                     MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
                 }
