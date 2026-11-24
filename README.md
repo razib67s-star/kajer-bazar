@@ -18,6 +18,12 @@
 - GitHub Actions-এ unit test, APK signature/package check এবং Android emulator install/launch check সফল হয়েছে (combined-auth build).
 - OTP/SMS provider, admin dashboard UI, scheduler, notification, document verification, session persistence এবং production release এখনও অসম্পূর্ণ।
 
+## নতুন ফিচার
+- কর্মীরা প্রকাশিত কাজ নিজের তালিকায় সংরক্ষণ করতে পারবেন; সংরক্ষিত কাজ শুধু নিজের অ্যাকাউন্টেই দেখা যাবে।
+- কাজ খোঁজার সময় নাম/বর্ণনা, জেলা, উপজেলা ও কাজের বিভাগ দিয়ে ফিল্টার করা যায়।
+- সংরক্ষিত কাজের তালিকা অ্যাকাউন্টের সঙ্গে সার্ভারে থাকবে, তাই অন্য ডিভাইসে একই অ্যাকাউন্টে লগইন করলেও পাওয়া যাবে।
+- সংরক্ষিত কাজের ফিচারের Android build ও emulator পরীক্ষা চলমান।
+
 ## Build
 GitHub Actions-এর **Build Kajer Bazar APK** workflow debug APK তৈরি ও emulator test করে। সফল run-এর artifact-ই ব্যবহার করুন। Debug APK production release নয়।
 
