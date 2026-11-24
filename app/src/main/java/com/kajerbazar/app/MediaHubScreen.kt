@@ -189,10 +189,9 @@ fun MediaPostsSection(token: String?, userId: String?, onLogin: () -> Unit, prof
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     fun refresh() {
-        val uid = userId ?: return
         scope.launch {
             loading = true
-            posts = MediaRepository.feed(token, uid, profileUserId).getOrNull().orEmpty()
+            posts = MediaRepository.feed(token, userId, profileUserId).getOrNull().orEmpty()
             loading = false
         }
     }
