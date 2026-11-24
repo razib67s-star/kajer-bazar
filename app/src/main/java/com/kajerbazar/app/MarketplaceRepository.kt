@@ -11,7 +11,7 @@ import java.net.URLEncoder
 object MarketplaceRepository {
     data class Profile(
         val fullName: String, val role: String, val district: String, val upazila: String,
-        val contactPhone: String, val currentAddress: String, val permanentAddress: String,
+        val authPhone: String, val contactPhone: String, val currentAddress: String, val permanentAddress: String,
         val workType: String, val skills: String, val avatarUrl: String
     )
     data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long)
@@ -41,7 +41,7 @@ object MarketplaceRepository {
 
     suspend fun getProfile(token: String, userId: String): Result<Profile> = withContext(Dispatchers.IO) {
         runCatching {
-            val path = "/rest/v1/profiles?select=full_name,role,district,upazila,contact_phone,current_address,permanent_address,work_type,skills,avatar_url&id=eq.${URLEncoder.encode(userId, "UTF-8")}"
+            val path = "/rest/v1/profiles?select=full_name,role,district,upazila,phone,contact_phone,current_address,permanent_address,work_type,skills,avatar_url&id=eq.${URLEncoder.encode(userId, "UTF-8")}"
             val (status, body) = request(path, token)
             if (status !in 200..299) error("প্রোফাইল পাওয়া যায়নি ($status)")
             val rows = JSONArray(body)
@@ -50,7 +50,7 @@ object MarketplaceRepository {
             Profile(
                 row.optString("full_name"), row.optString("role", "worker"),
                 row.optString("district"), row.optString("upazila"),
-                row.optString("contact_phone"), row.optString("current_address"),
+                row.optString("phone"), row.optString("contact_phone"), row.optString("current_address"),
                 row.optString("permanent_address"), row.optString("work_type"),
                 row.optString("skills"), row.optString("avatar_url")
             )
