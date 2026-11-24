@@ -101,7 +101,7 @@ object MessageRepository {
             val uid = URLEncoder.encode(userId, "UTF-8")
             val pid = URLEncoder.encode(peerId, "UTF-8")
             val path = "/rest/v1/direct_messages?sender_id=eq.$pid&receiver_id=eq.$uid&read_at=is.null"
-            val (code, response) = request(path, token, "PATCH", JSONObject().put("read_at", java.time.Instant.now().toString()))
+            val (code, response) = request(path, token, "PATCH", JSONObject().put("read_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(java.util.Date())))
             if (code !in 200..299) error("পড়া হয়েছে চিহ্নিত করা যায়নি ($code): $response")
         }
     }
