@@ -703,17 +703,23 @@ fun KajerBazarApp() {
                                     profileSkills.trim(),
                                     profileAvatarUrl.trim()
                                 )
-                                val roleResult = if (result.isSuccess) MarketplaceRepository.updateRoleProfile(
-                                    token,
-                                    profileOrganizationName.trim(),
-                                    profileOrganizationType.trim(),
-                                    profileOrganizationDetails.trim(),
-                                    profileContactPerson.trim(),
-                                    profileExperience.trim(),
-                                    profileAvailability.trim(),
-                                    profileExpectedWage.trim(),
-                                    profilePortfolio.trim()
-                                ) else Result.failure<Unit>(result.exceptionOrNull() ?: IllegalStateException("প্রোফাইল আপডেট হয়নি।"))
+                                val roleResult = if (!result.isSuccess) {
+                                    Result.failure<Unit>(result.exceptionOrNull() ?: IllegalStateException("প্রোফাইল আপডেট হয়নি।"))
+                                } else if (profile?.role == "admin") {
+                                    Result.success(Unit)
+                                } else {
+                                    MarketplaceRepository.updateRoleProfile(
+                                        token,
+                                        profileOrganizationName.trim(),
+                                        profileOrganizationType.trim(),
+                                        profileOrganizationDetails.trim(),
+                                        profileContactPerson.trim(),
+                                        profileExperience.trim(),
+                                        profileAvailability.trim(),
+                                        profileExpectedWage.trim(),
+                                        profilePortfolio.trim()
+                                    )
+                                }
                                 busy = false
                                 if (result.isSuccess && roleResult.isSuccess) {
                                     profile = profile?.copy(
