@@ -217,6 +217,7 @@ fun KajerBazarApp() {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var selectedPage by remember { mutableStateOf("home") }
+    var viewedProfileId by remember { mutableStateOf<String?>(null) }
     val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
@@ -437,7 +438,19 @@ fun KajerBazarApp() {
                     MessagesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
                 }
                 if (selectedPage == "media") item {
-                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
+                }
+                if (selectedPage == "publicProfile" && viewedProfileId != null) item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("ব্যবহারকারীর প্রোফাইল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Text("← নিউজ ফিডে ফিরে যান")
+                        }
+                        MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true },
+                            profileUserId = viewedProfileId,
+                            onOpenProfile = { viewedProfileId = it })
+                    }
                 }
                 if (selectedPage == "activity") item {
                     Card(Modifier.fillMaxWidth()) {
@@ -546,7 +559,8 @@ fun KajerBazarApp() {
                     Text("সব ব্যবহারকারীর প্রকাশিত কাজ, ছবি, ভিডিও ও লেখা এখানে দেখুন।", style = MaterialTheme.typography.bodyMedium)
                 }
                 item {
-                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
                 }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
