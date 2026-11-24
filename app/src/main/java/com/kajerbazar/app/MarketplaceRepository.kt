@@ -18,6 +18,10 @@ object MarketplaceRepository {
         val expectedWage: String, val portfolio: String
     )
     data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long)
+    data class AdminProfile(
+        val id: String, val fullName: String, val phone: String, val contactPhone: String,
+        val district: String, val upazila: String, val role: String, val accountStatus: String
+    )
 
     private fun request(path: String, token: String?, method: String = "GET", body: JSONObject? = null, prefer: String = "return=minimal"): Pair<Int, String> {
         val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
@@ -333,6 +337,39 @@ object MarketplaceRepository {
                     row.getString("district"), row.getString("upazila"))
             }
             pendingJobs to employerRequests
+        }
+    }
+
+    suspend fun adminListProfiles(token: String): Result<List<AdminProfile>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/rpc/admin_list_profiles", token, "POST", JSONObject())
+            if (status !in 200..299) error("ব্যবহারকারী তালিকা পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                AdminProfile(
+                    row.optString("id"), row.optString("full_name"), row.optString("phone"),
+                    row.optString("contact_phone"), row.optString("district"), row.optString("upazila"),
+                    row.optString("role"), row.optString("account_status", "active")
+                )
+            }
+        }
+    }
+
+    suspend fun adminUpdateProfile(
+        token: String, userId: String, fullName: String, contactPhone: String,
+        district: String, upazila: String, accountStatus: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = JSONObject()
+                .put("p_user_id", userId)
+                .put("p_full_name", fullName)
+                .put("p_contact_phone", contactPhone)
+                .put("p_district", district)
+                .put("p_upazila", upazila)
+                .put("p_account_status", accountStatus)
+            val (status, response) = request("/rest/v1/rpc/admin_update_profile", token, "POST", body)
+            if (status !in 200..299) error("ব্যবহারকারী আপডেট হয়নি ($status): $response")
         }
     }
 
