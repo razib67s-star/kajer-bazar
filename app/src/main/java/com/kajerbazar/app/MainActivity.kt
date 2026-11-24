@@ -1,9 +1,16 @@
 package com.kajerbazar.app
 
 import android.os.Bundle
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -116,6 +123,12 @@ fun KajerBazarApp() {
     var profileFullName by remember { mutableStateOf("") }
     var profileDistrict by remember { mutableStateOf("") }
     var profileUpazila by remember { mutableStateOf("") }
+    var profileContactPhone by remember { mutableStateOf("") }
+    var profileCurrentAddress by remember { mutableStateOf("") }
+    var profilePermanentAddress by remember { mutableStateOf("") }
+    var profileWorkType by remember { mutableStateOf("") }
+    var profileSkills by remember { mutableStateOf("") }
+    var profileAvatarUrl by remember { mutableStateOf("") }
     var showMyApplicationsDialog by remember { mutableStateOf(false) }
     var myApplications by remember { mutableStateOf<List<MarketplaceRepository.WorkerApplication>>(emptyList()) }
     var showApplicationsDialog by remember { mutableStateOf(false) }
@@ -136,6 +149,42 @@ fun KajerBazarApp() {
     var jobUpazila by remember { mutableStateOf("") }
     var jobWage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val token = accessToken
+            val id = userId
+            if (token == null || id == null) {
+                jobMessage = "ছবি আপলোড করতে আবার লগইন করুন।"
+            } else {
+                busy = true
+                scope.launch {
+                    val mime = appContext.contentResolver.getType(uri).orEmpty()
+                    val extension = when (mime.lowercase()) {
+                        "image/png" -> "png"
+                        "image/webp" -> "webp"
+                        "image/jpeg", "image/jpg" -> "jpg"
+                        else -> ""
+                    }
+                    val result = runCatching {
+                        require(extension.isNotBlank()) { "শুধু JPG, PNG অথবা WebP ছবি নির্বাচন করুন।" }
+                        val bytes = withContext(Dispatchers.IO) {
+                            appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                                ?: error("ছবিটি পড়া যায়নি।")
+                        }
+                        require(bytes.isNotEmpty() && bytes.size <= 3 * 1024 * 1024) { "ছবির আকার ৩ MB-এর মধ্যে হতে হবে।" }
+                        MarketplaceRepository.uploadAvatar(token, id, bytes, mime, extension)
+                    }
+                    busy = false
+                    if (result.isSuccess) {
+                        profileAvatarUrl = result.getOrThrow()
+                        jobMessage = "প্রোফাইল ছবি আপলোড হয়েছে। সংরক্ষণ করুন।"
+                    } else {
+                        jobMessage = result.exceptionOrNull()?.message ?: "ছবি আপলোড হয়নি।"
+                    }
+                }
+            }
+        }
+    }
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
         Scaffold(
@@ -180,11 +229,27 @@ fun KajerBazarApp() {
                         Card {
                             Column(Modifier.padding(14.dp)) {
                                 Text("আপনার প্রোফাইল", fontWeight = FontWeight.Bold)
+                                if (!profile?.avatarUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = profile?.avatarUrl,
+                                        contentDescription = "প্রোফাইল ছবি",
+                                        modifier = Modifier.size(76.dp).clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
                                 Text("নাম: ${profile?.fullName?.ifBlank { "নাম যোগ করা হয়নি" }}")
+                                Text("মোবাইল: ${profile?.contactPhone?.ifBlank { "যোগ করা হয়নি" }}")
+                                Text("কাজের ধরন: ${profile?.workType?.ifBlank { "যোগ করা হয়নি" }}")
                                 OutlinedButton(onClick = {
                                     profileFullName = profile?.fullName.orEmpty()
                                     profileDistrict = profile?.district.orEmpty()
                                     profileUpazila = profile?.upazila.orEmpty()
+                                    profileContactPhone = profile?.contactPhone.orEmpty()
+                                    profileCurrentAddress = profile?.currentAddress.orEmpty()
+                                    profilePermanentAddress = profile?.permanentAddress.orEmpty()
+                                    profileWorkType = profile?.workType.orEmpty()
+                                    profileSkills = profile?.skills.orEmpty()
+                                    profileAvatarUrl = profile?.avatarUrl.orEmpty()
                                     showProfileForm = true
                                 }, modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল সম্পাদনা করুন") }
                                 Text("অ্যাকাউন্ট: ${if (profile?.role == "employer") "কাজদাতা" else "কর্মী"}")
@@ -448,14 +513,37 @@ fun KajerBazarApp() {
                 onDismissRequest = { if (!busy) showProfileForm = false },
                 title = { Text("প্রোফাইল সম্পাদনা") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(
+                        Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (profileAvatarUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = profileAvatarUrl,
+                                contentDescription = "প্রোফাইল ছবি",
+                                modifier = Modifier.size(88.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        OutlinedButton(onClick = { avatarPicker.launch("image/*") }, enabled = !busy,
+                            modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল ছবি যোগ / পরিবর্তন করুন") }
                         OutlinedTextField(profileFullName, { profileFullName = it.take(100) }, enabled = !busy,
                             label = { Text("পূর্ণ নাম") }, singleLine = true)
+                        OutlinedTextField(profileContactPhone, { profileContactPhone = it.take(20) }, enabled = !busy,
+                            label = { Text("যোগাযোগের মোবাইল নম্বর") }, singleLine = true)
+                        OutlinedTextField(profileCurrentAddress, { profileCurrentAddress = it.take(300) }, enabled = !busy,
+                            label = { Text("বর্তমান ঠিকানা") }, minLines = 2)
+                        OutlinedTextField(profilePermanentAddress, { profilePermanentAddress = it.take(300) }, enabled = !busy,
+                            label = { Text("স্থায়ী ঠিকানা") }, minLines = 2)
                         OutlinedTextField(profileDistrict, { profileDistrict = it.take(100) }, enabled = !busy,
                             label = { Text("জেলা") }, singleLine = true)
                         OutlinedTextField(profileUpazila, { profileUpazila = it.take(100) }, enabled = !busy,
                             label = { Text("উপজেলা") }, singleLine = true)
-                        Text("নাম আবশ্যক; জেলা ও উপজেলা ঐচ্ছিক।")
+                        OutlinedTextField(profileWorkType, { profileWorkType = it.take(100) }, enabled = !busy,
+                            label = { Text("কোন ধরনের কাজ খুঁজছেন / দেন?") }, singleLine = true)
+                        OutlinedTextField(profileSkills, { profileSkills = it.take(1000) }, enabled = !busy,
+                            label = { Text("দক্ষতা ও অভিজ্ঞতা") }, minLines = 3)
+                        Text("পূর্ণ নাম আবশ্যক। ছবি JPG, PNG বা WebP; সর্বোচ্চ ৩ MB।")
                     }
                 },
                 confirmButton = {
@@ -469,14 +557,29 @@ fun KajerBazarApp() {
                             busy = true
                             scope.launch {
                                 val result = MarketplaceRepository.updateMyProfile(
-                                    token, profileFullName.trim(), profileDistrict.trim(), profileUpazila.trim()
+                                    token,
+                                    profileFullName.trim(),
+                                    profileContactPhone.trim(),
+                                    profileDistrict.trim(),
+                                    profileUpazila.trim(),
+                                    profileCurrentAddress.trim(),
+                                    profilePermanentAddress.trim(),
+                                    profileWorkType.trim(),
+                                    profileSkills.trim(),
+                                    profileAvatarUrl.trim()
                                 )
                                 busy = false
                                 if (result.isSuccess) {
                                     profile = profile?.copy(
                                         fullName = profileFullName.trim(),
                                         district = profileDistrict.trim(),
-                                        upazila = profileUpazila.trim()
+                                        upazila = profileUpazila.trim(),
+                                        contactPhone = profileContactPhone.trim(),
+                                        currentAddress = profileCurrentAddress.trim(),
+                                        permanentAddress = profilePermanentAddress.trim(),
+                                        workType = profileWorkType.trim(),
+                                        skills = profileSkills.trim(),
+                                        avatarUrl = profileAvatarUrl.trim()
                                     )
                                     jobMessage = "প্রোফাইল আপডেট হয়েছে।"
                                     showProfileForm = false
