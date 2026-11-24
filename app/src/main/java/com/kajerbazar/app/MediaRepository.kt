@@ -71,6 +71,18 @@ object MediaRepository {
             }
         }
 
+    suspend fun publishText(token: String, userId: String, text: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val clean = text.trim()
+                require(clean.isNotEmpty() && clean.length <= 500) { "পোস্ট ১ থেকে ৫০০ অক্ষরের মধ্যে লিখুন।" }
+                val post = JSONObject().put("user_id", userId).put("media_type", "text")
+                    .put("caption", clean)
+                val (status, response) = request("/rest/v1/media_posts", token, "POST", post)
+                if (status !in 200..299) error("পোস্ট প্রকাশ হয়নি ($status): $response")
+            }
+        }
+
     suspend fun feed(token: String? = null, userId: String? = null): Result<List<Post>> = withContext(Dispatchers.IO) {
         runCatching {
             val (status, body) = request("/rest/v1/media_posts?select=id,user_id,media_type,storage_path,caption,created_at,author_name,author_avatar_url,like_count,comment_count&order=created_at.desc&limit=100", token)
@@ -86,11 +98,12 @@ object MediaRepository {
             val rows = JSONArray(body)
             (0 until rows.length()).map { i ->
                 val row = rows.getJSONObject(i)
-                val path = row.getString("storage_path").split("/").joinToString("/") {
+                val rawPath = row.optString("storage_path")
+                val mediaUrl = if (rawPath.isBlank()) "" else rawPath.split("/").joinToString("/") {
                     URLEncoder.encode(it, "UTF-8").replace("+", "%20")
-                }
+                }.let { BuildConfig.SUPABASE_URL.trimEnd('/') + "/storage/v1/object/public/community-media/$it" }
                 Post(row.getString("id"), row.getString("user_id"), row.getString("media_type"),
-                    BuildConfig.SUPABASE_URL.trimEnd('/') + "/storage/v1/object/public/community-media/$path",
+                    mediaUrl,
                     row.optString("caption"), row.optString("created_at"), row.optString("author_name", "ব্যবহারকারী"),
                     row.optString("author_avatar_url"), row.optLong("like_count"), row.optLong("comment_count"),
                     row.getString("id") in likedIds)
