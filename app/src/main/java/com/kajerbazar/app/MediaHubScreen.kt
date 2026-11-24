@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.VideoView
+import android.widget.MediaController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,6 +33,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
     var status by remember { mutableStateOf("ছবি বা ভিডিও শেয়ার করুন।") }
     var busy by remember { mutableStateOf(false) }
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
+    var liveRoomUrl by remember { mutableStateOf<String?>(null) }
 
     fun refresh() {
         scope.launch {
@@ -109,9 +111,8 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
             enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("গ্যালারি থেকে ভিডিও আপলোড করুন") }
         OutlinedButton(onClick = {
             val room = "kajerbazar-" + UUID.randomUUID().toString().replace("-", "").take(18)
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://meet.jit.si/$room"))
-            context.startActivity(intent)
-        }, modifier = Modifier.fillMaxWidth()) { Text("🔴 লাইভ ভিডিও কল শুরু করুন") }
+            liveRoomUrl = "https://meet.jit.si/$room"
+        }, modifier = Modifier.fillMaxWidth()) { Text("🔴 লাইভ ভিডিও কল / রুম তৈরি করুন") }
         Text("লাইভ কল Jitsi Meet-এর নিরাপদ রুম লিংকে খুলবে। অপর পক্ষকে একই রুম লিংক পাঠাতে হবে। অচেনা কারও সঙ্গে ব্যক্তিগত তথ্য শেয়ার করবেন না।",
             style = MaterialTheme.typography.bodySmall)
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -125,8 +126,13 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (post.mediaType == "video") {
-                        AndroidView(factory = { ctx -> VideoView(ctx).apply { setVideoURI(Uri.parse(post.url)); setOnPreparedListener { it.isLooping = false } } },
-                            modifier = Modifier.fillMaxWidth().height(220.dp), update = { it.setVideoURI(Uri.parse(post.url)) })
+                        AndroidView(factory = { ctx ->
+                            VideoView(ctx).apply {
+                                setMediaController(MediaController(ctx))
+                                setVideoURI(Uri.parse(post.url))
+                                setOnPreparedListener { start() }
+                            }
+                        }, modifier = Modifier.fillMaxWidth().height(220.dp))
                     } else {
                         AsyncImage(model = post.url, contentDescription = "কমিউনিটি ছবি", modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp))
                     }
@@ -135,5 +141,30 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                 }
             }
         }
+    }
+    liveRoomUrl?.let { roomUrl ->
+        AlertDialog(
+            onDismissRequest = { liveRoomUrl = null },
+            title = { Text("লাইভ ভিডিও রুম তৈরি হয়েছে") },
+            text = { Text("এই লিংকটি যাঁর সঙ্গে কথা বলবেন তাঁকে পাঠান। দুজন একই লিংকে প্রবেশ করলে ভিডিও কল শুরু হবে।\n\n$roomUrl") },
+            confirmButton = {
+                TextButton(onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(roomUrl)))
+                    liveRoomUrl = null
+                }) { Text("কল খুলুন") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        val share = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "কাজের বাজার লাইভ ভিডিও কল: $roomUrl")
+                        }
+                        context.startActivity(Intent.createChooser(share, "লাইভ কলের লিংক শেয়ার করুন"))
+                    }) { Text("লিংক শেয়ার") }
+                    TextButton(onClick = { liveRoomUrl = null }) { Text("বন্ধ") }
+                }
+            }
+        )
     }
 }
