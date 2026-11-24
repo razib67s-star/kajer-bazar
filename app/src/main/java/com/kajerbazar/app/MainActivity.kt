@@ -16,6 +16,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -180,6 +190,8 @@ fun KajerBazarApp() {
     var jobUpazila by remember { mutableStateOf("") }
     var jobWage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             val token = accessToken
@@ -218,6 +230,128 @@ fun KajerBazarApp() {
     }
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = true,
+            drawerContent = {
+                ModalDrawerSheet {
+                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("কাজের বাজার", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Blue)
+                        Text(profile?.fullName?.ifBlank { signedInAccount ?: "অতিথি ব্যবহারকারী" } ?: "অতিথি ব্যবহারকারী")
+                        Text(when (profile?.role) { "admin" -> "অ্যাডমিন"; "employer" -> "কাজদাতা"; "worker" -> "কর্মী"; else -> "অতিথি" }, color = Blue)
+                    }
+                    HorizontalDivider()
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                        label = { Text("হোম") }, selected = true,
+                        onClick = { scope.launch { drawerState.close(); mainListState.animateScrollToItem(0) } },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        label = { Text("কাজ খুঁজুন") }, selected = false,
+                        onClick = { scope.launch { drawerState.close(); mainListState.animateScrollToItem(0) } },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        label = { Text(if (profile == null) "লগইন / অ্যাকাউন্ট" else "আমার প্রোফাইল") }, selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            if (profile == null) showLogin = true else {
+                                profileFullName = profile?.fullName.orEmpty()
+                                profileDistrict = profile?.district.orEmpty()
+                                profileUpazila = profile?.upazila.orEmpty()
+                                profileContactPhone = profile?.contactPhone?.ifBlank { profile?.authPhone.orEmpty() }.orEmpty()
+                                profileCurrentAddress = profile?.currentAddress.orEmpty()
+                                profilePermanentAddress = profile?.permanentAddress.orEmpty()
+                                profileWorkType = profile?.workType.orEmpty()
+                                profileSkills = profile?.skills.orEmpty()
+                                profileAvatarUrl = profile?.avatarUrl.orEmpty()
+                                profileOrganizationName = profile?.organizationName.orEmpty()
+                                profileOrganizationType = profile?.organizationType.orEmpty()
+                                profileOrganizationDetails = profile?.organizationDetails.orEmpty()
+                                profileContactPerson = profile?.contactPerson.orEmpty()
+                                profileExperience = profile?.experience.orEmpty()
+                                profileAvailability = profile?.availability.orEmpty()
+                                profileExpectedWage = profile?.expectedWage.orEmpty()
+                                profilePortfolio = profile?.portfolio.orEmpty()
+                                showProfileForm = true
+                            }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    if (profile?.role == "worker") {
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.ListAlt, contentDescription = null) },
+                            label = { Text("আমার আবেদন") }, selected = false,
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                val token = accessToken
+                                if (token != null) {
+                                    showMyApplicationsDialog = true; busy = true
+                                    scope.launch {
+                                        val result = MarketplaceRepository.getWorkerApplications(token)
+                                        busy = false; myApplications = result.getOrNull().orEmpty()
+                                        if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "আবেদন পাওয়া যায়নি।"
+                                    }
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                    }
+                    if (profile?.role == "employer") {
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.Work, contentDescription = null) },
+                            label = { Text("নতুন কাজ পোস্ট") }, selected = false,
+                            onClick = { scope.launch { drawerState.close() }; showJobForm = true },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.ListAlt, contentDescription = null) },
+                            label = { Text("কাজের আবেদন দেখুন") }, selected = false,
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                val token = accessToken; val id = userId
+                                if (token != null && id != null) {
+                                    selectedEmployerJob = null; employerApplications = emptyList()
+                                    showApplicationsDialog = true; busy = true
+                                    scope.launch {
+                                        val result = MarketplaceRepository.getEmployerJobs(token, id)
+                                        busy = false; employerJobs = result.getOrNull().orEmpty()
+                                        if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "কাজের তালিকা পাওয়া যায়নি।"
+                                    }
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                    }
+                    if (profile?.role == "admin") {
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null) },
+                            label = { Text("অ্যাডমিন ড্যাশবোর্ড") }, selected = false,
+                            onClick = { scope.launch { drawerState.close(); mainListState.animateScrollToItem((mainListState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) } },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        label = { Text("অ্যাপ সেটিংস") }, selected = false,
+                        onClick = { scope.launch { drawerState.close() }; showAppSettings = true },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Logout, contentDescription = null) },
+                        label = { Text(if (profile == null) "লগইন করুন" else "অ্যাকাউন্ট তথ্য") }, selected = false,
+                        onClick = { scope.launch { drawerState.close() }; showLogin = true },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    Text("নিরাপদে কাজ খুঁজুন • নিরাপদে কাজ দিন", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -225,8 +359,12 @@ fun KajerBazarApp() {
                         Text("কাজের বাজার", fontWeight = FontWeight.Bold)
                         Text("কাজ খুঁজুন, কাজ দিন", style = MaterialTheme.typography.labelSmall)
                     } },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "মেনু খুলুন", tint = Color.White)
+                        }
+                    },
                     actions = {
-                        TextButton(onClick = { showAppSettings = true }) { Text("সেটিংস", color = Color.White) }
                         TextButton(onClick = { showLogin = true }) {
                             Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
                         }
@@ -236,6 +374,7 @@ fun KajerBazarApp() {
             }
         ) { padding ->
             LazyColumn(
+                state = mainListState,
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -497,6 +636,7 @@ fun KajerBazarApp() {
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
+        }
         }
 
         if (showLogin) {
