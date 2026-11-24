@@ -69,6 +69,8 @@ fun KajerBazarApp() {
     var phone by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var otpSent by remember { mutableStateOf(false) }
+    var emailOtpSent by remember { mutableStateOf(false) }
+    var emailOtp by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var isSignUp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -453,15 +455,19 @@ fun KajerBazarApp() {
                                     Text(if (!usePhoneOtp) "✓ ইমেইল" else "ইমেইল")
                                 }
                             }
-                            if (isSignUp && (!usePhoneOtp || !otpSent)) {
+                            if (isSignUp && ((!usePhoneOtp && !emailOtpSent) || (usePhoneOtp && !otpSent))) {
                                 OutlinedTextField(value = fullName, onValueChange = { fullName = it }, enabled = !busy, label = { Text("আপনার পূর্ণ নাম") }, singleLine = true)
                             }
                             if (usePhoneOtp) {
                                 OutlinedTextField(value = phone, onValueChange = { phone = it.filter { ch -> ch.isDigit() || ch == '+' }.take(16) }, enabled = !busy && !otpSent, label = { Text("মোবাইল নম্বর") }, placeholder = { Text("01XXXXXXXXX") }, singleLine = true)
                                 if (otpSent) OutlinedTextField(value = otp, onValueChange = { otp = it.filter(Char::isDigit).take(8) }, enabled = !busy, label = { Text("SMS-এ পাওয়া OTP কোড") }, singleLine = true)
                             } else {
-                                OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !busy, label = { Text("ইমেইল ঠিকানা") }, placeholder = { Text("name@example.com") }, singleLine = true)
-                                OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !busy, label = { Text("পাসওয়ার্ড") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                                OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !busy && !emailOtpSent, label = { Text("ইমেইল ঠিকানা") }, placeholder = { Text("name@example.com") }, singleLine = true)
+                                if (isSignUp && emailOtpSent) {
+                                    OutlinedTextField(value = emailOtp, onValueChange = { emailOtp = it.filter(Char::isDigit).take(6) }, enabled = !busy, label = { Text("Gmail-এ পাওয়া ৬ সংখ্যার OTP") }, singleLine = true)
+                                } else {
+                                    OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !busy, label = { Text("পাসওয়ার্ড") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                                }
                             }
                         }
                         if (authMessage.isNotBlank()) Text(authMessage,
@@ -484,14 +490,18 @@ fun KajerBazarApp() {
                             busy = true; authMessage = ""
                             scope.launch {
                                 val result = when {
-                                    !usePhoneOtp && isSignUp -> AuthRepository.signUpEmail(email, password, fullName)
+                                    !usePhoneOtp && isSignUp && !emailOtpSent -> AuthRepository.signUpEmail(email, password, fullName)
+                                    !usePhoneOtp && isSignUp && emailOtpSent -> AuthRepository.verifyEmailOtp(email, emailOtp)
                                     !usePhoneOtp -> AuthRepository.signInEmail(email, password)
                                     !otpSent -> AuthRepository.requestOtp(phone, fullName, isSignUp)
                                     else -> AuthRepository.verifyOtp(phone, otp)
                                 }
                                 busy = false
                                 authMessage = result.message
-                                if (result.success && usePhoneOtp && !otpSent) {
+                                if (result.success && !usePhoneOtp && isSignUp && !emailOtpSent && result.accessToken == null) {
+                                    emailOtpSent = true
+                                    authMessage = result.message
+                                } else if (result.success && usePhoneOtp && !otpSent) {
                                     phone = result.phone ?: phone
                                     otpSent = true
                                 } else if (result.success && (result.accessToken != null)) {
@@ -505,7 +515,7 @@ fun KajerBazarApp() {
                                             SessionStore.save(appContext, SessionStore.SavedSession(newRefreshToken, result.userId, accountLabel))
                                         }
                                     }
-                                    otp = ""; otpSent = false
+                                    otp = ""; otpSent = false; emailOtp = ""; emailOtpSent = false
                                     showLogin = false
                                     val token = result.accessToken
                                     val id = result.userId.orEmpty()
@@ -523,7 +533,8 @@ fun KajerBazarApp() {
                             }
                         }) {
                             Text(if (busy) "অপেক্ষা করুন…" else when {
-                                !usePhoneOtp && isSignUp -> "অ্যাকাউন্ট তৈরি করুন"
+                                !usePhoneOtp && isSignUp && emailOtpSent -> "ইমেইল OTP যাচাই করুন"
+                                !usePhoneOtp && isSignUp -> "অ্যাকাউন্ট তৈরি ও OTP পাঠান"
                                 !usePhoneOtp -> "ইমেইল দিয়ে লগইন"
                                 otpSent -> "OTP যাচাই করুন"
                                 else -> "OTP পাঠান"
@@ -536,11 +547,13 @@ fun KajerBazarApp() {
                         TextButton(enabled = !busy, onClick = {
                             if (usePhoneOtp && otpSent) {
                                 otpSent = false; otp = ""; authMessage = "মোবাইল নম্বর পরিবর্তন করতে পারেন。"
+                            } else if (!usePhoneOtp && emailOtpSent) {
+                                emailOtpSent = false; emailOtp = ""; authMessage = "ইমেইল ও তথ্য পরিবর্তন করতে পারেন।"
                             } else {
                                 isSignUp = !isSignUp; authMessage = ""
                             }
                         }) {
-                            Text(if (usePhoneOtp && otpSent) "নম্বর পরিবর্তন" else if (isSignUp) "আগে অ্যাকাউন্ট আছে? লগইন" else "নতুন অ্যাকাউন্ট খুলুন")
+                            Text(if (usePhoneOtp && otpSent) "নম্বর পরিবর্তন" else if (!usePhoneOtp && emailOtpSent) "তথ্য পরিবর্তন" else if (isSignUp) "আগে অ্যাকাউন্ট আছে? লগইন" else "নতুন অ্যাকাউন্ট খুলুন")
                         }
                     } else TextButton(onClick = { showLogin = false }) { Text("বন্ধ") }
                 }
