@@ -563,6 +563,34 @@ fun KajerBazarApp() {
                         onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
                 }
                 item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF7F0)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("📣 কাজের বাজারে প্রচার করুন", fontWeight = FontWeight.Bold, color = Color(0xFF126B45))
+                            Text(
+                                "আপনার প্রতিষ্ঠানের কাজ বা সেবার খবর সবার কাছে পৌঁছে দিন। আপাতত কাজের পোস্ট প্রকাশ বিনামূল্যে।",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    if (profile?.role == "employer") showJobForm = true
+                                    else if (profile == null) showLogin = true
+                                    else showEmployerForm = true
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("কাজ বা সেবার পোস্ট দিন") }
+                            Text("এটি কাজের বাজারের নিজস্ব প্রচার ব্যানার; বাইরের পেইড বিজ্ঞাপন এখনো চালু নয়।",
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFF4E6659))
+                        }
+                    }
+                }
+                item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("আপনার প্রয়োজনীয় বিভাগ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("এক চাপেই প্রয়োজনীয় পেজে যান।")
