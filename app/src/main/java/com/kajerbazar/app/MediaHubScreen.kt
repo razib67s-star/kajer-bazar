@@ -136,7 +136,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                         AsyncImage(model = post.url, contentDescription = "কমিউনিটি ছবি", modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp))
                     }
                     if (post.caption.isNotBlank()) Text(post.caption)
-                    Text("পোস্টকারী: ${post.userId.take(8)}…", style = MaterialTheme.typography.labelSmall)
+                    Text("পোস্টকারী: কমিউনিটি সদস্য", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
