@@ -99,6 +99,15 @@ fun KajerBazarApp() {
     var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminJobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminEmployerRequests by remember { mutableStateOf<List<MarketplaceRepository.EmployerRequest>>(emptyList()) }
+    var adminProfiles by remember { mutableStateOf<List<MarketplaceRepository.AdminProfile>>(emptyList()) }
+    var showAdminUsersDialog by remember { mutableStateOf(false) }
+    var showAdminEditDialog by remember { mutableStateOf(false) }
+    var editingAdminProfile by remember { mutableStateOf<MarketplaceRepository.AdminProfile?>(null) }
+    var adminEditName by remember { mutableStateOf("") }
+    var adminEditPhone by remember { mutableStateOf("") }
+    var adminEditDistrict by remember { mutableStateOf("") }
+    var adminEditUpazila by remember { mutableStateOf("") }
+    var adminEditStatus by remember { mutableStateOf("active") }
     var jobMessage by remember { mutableStateOf("প্রকাশিত কাজ লোড হচ্ছে…") }
     var jobSearch by remember { mutableStateOf("") }
     var districtFilter by remember { mutableStateOf("") }
@@ -665,6 +674,17 @@ fun KajerBazarApp() {
                                 Text("অপেক্ষমাণ কাজ: ${adminJobs.size}টি")
                                 Text("কাজদাতা আবেদন: ${adminEmployerRequests.size}টি")
                                 OutlinedButton(onClick = { showAppSettings = true }, modifier = Modifier.fillMaxWidth()) { Text("অ্যাপ সেটিংস পরিচালনা") }
+                                OutlinedButton(enabled = !busy, onClick = {
+                                    val token = accessToken
+                                    if (token != null) scope.launch {
+                                        busy = true
+                                        val result = MarketplaceRepository.adminListProfiles(token)
+                                        adminProfiles = result.getOrNull().orEmpty()
+                                        busy = false
+                                        if (result.isSuccess) showAdminUsersDialog = true
+                                        else jobMessage = result.exceptionOrNull()?.message ?: "ব্যবহারকারী তালিকা পাওয়া যায়নি।"
+                                    }
+                                }, modifier = Modifier.fillMaxWidth()) { Text("ব্যবহারকারী পরিচালনা") }
                             }
                         }
                         Text("অ্যাডমিন পর্যালোচনা", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1267,6 +1287,94 @@ fun KajerBazarApp() {
                     }
                 },
                 confirmButton = { TextButton(enabled = !busy, onClick = { showApplicationsDialog = false }) { Text("বন্ধ") } }
+            )
+        }
+
+
+        if (showAdminUsersDialog) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showAdminUsersDialog = false },
+                title = { Text("ব্যবহারকারী পরিচালনা (${adminProfiles.size})") },
+                text = {
+                    Column(Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (busy) Text("তালিকা লোড হচ্ছে…")
+                        if (adminProfiles.isEmpty() && !busy) Text("কোনো ব্যবহারকারী পাওয়া যায়নি।")
+                        adminProfiles.forEach { person ->
+                            Card {
+                                Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(person.fullName.ifBlank { "নাম দেওয়া হয়নি" }, fontWeight = FontWeight.Bold)
+                                    Text("ভূমিকা: ${person.role} • অবস্থা: ${if (person.accountStatus == "active") "সক্রিয়" else "স্থগিত"}")
+                                    Text("মোবাইল: ${person.contactPhone.ifBlank { person.phone }}")
+                                    Text(listOf(person.district, person.upazila).filter { it.isNotBlank() }.joinToString(", "))
+                                    OutlinedButton(enabled = !busy && person.role != "admin", onClick = {
+                                        editingAdminProfile = person
+                                        adminEditName = person.fullName
+                                        adminEditPhone = person.contactPhone
+                                        adminEditDistrict = person.district
+                                        adminEditUpazila = person.upazila
+                                        adminEditStatus = person.accountStatus
+                                        showAdminUsersDialog = false
+                                        showAdminEditDialog = true
+                                    }, modifier = Modifier.fillMaxWidth()) { Text("সম্পাদনা / অ্যাকাউন্ট নিয়ন্ত্রণ") }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(enabled = !busy, onClick = { showAdminUsersDialog = false }) { Text("বন্ধ") } }
+            )
+        }
+
+        if (showAdminEditDialog) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showAdminEditDialog = false },
+                title = { Text("ব্যবহারকারী সম্পাদনা") },
+                text = {
+                    Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(editingAdminProfile?.fullName.orEmpty(), fontWeight = FontWeight.Bold)
+                        OutlinedTextField(adminEditName, { adminEditName = it.take(120) }, label = { Text("পূর্ণ নাম") }, singleLine = true)
+                        OutlinedTextField(adminEditPhone, { adminEditPhone = it.take(20) }, label = { Text("যোগাযোগ নম্বর") }, singleLine = true)
+                        OutlinedTextField(adminEditDistrict, { adminEditDistrict = it.take(60) }, label = { Text("জেলা") }, singleLine = true)
+                        OutlinedTextField(adminEditUpazila, { adminEditUpazila = it.take(60) }, label = { Text("উপজেলা") }, singleLine = true)
+                        Text("অ্যাকাউন্টের অবস্থা", fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = adminEditStatus == "active", onClick = { adminEditStatus = "active" }, label = { Text("সক্রিয়") })
+                            FilterChip(selected = adminEditStatus == "suspended", onClick = { adminEditStatus = "suspended" }, label = { Text("স্থগিত") })
+                        }
+                        Text("অ্যাডমিন অ্যাকাউন্ট এই তালিকা থেকে পরিবর্তন করা যায় না।", style = MaterialTheme.typography.bodySmall)
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = !busy && adminEditName.isNotBlank(), onClick = {
+                        val token = accessToken
+                        val person = editingAdminProfile
+                        if (token != null && person != null) {
+                            busy = true
+                            scope.launch {
+                                val result = MarketplaceRepository.adminUpdateProfile(
+                                    token, person.id, adminEditName.trim(), adminEditPhone.trim(),
+                                    adminEditDistrict.trim(), adminEditUpazila.trim(), adminEditStatus
+                                )
+                                busy = false
+                                if (result.isSuccess) {
+                                    adminProfiles = MarketplaceRepository.adminListProfiles(token).getOrNull().orEmpty()
+                                    showAdminEditDialog = false
+                                    jobMessage = "ব্যবহারকারীর তথ্য সংরক্ষণ হয়েছে।"
+                                } else {
+                                    jobMessage = result.exceptionOrNull()?.message ?: "ব্যবহারকারীর তথ্য সংরক্ষণ হয়নি।"
+                                }
+                            }
+                        }
+                    }) { Text(if (busy) "সংরক্ষণ হচ্ছে…" else "সংরক্ষণ করুন") }
+                },
+                dismissButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        showAdminEditDialog = false
+                        showAdminUsersDialog = true
+                    }) { Text("ফিরে যান") }
+                }
             )
         }
 
