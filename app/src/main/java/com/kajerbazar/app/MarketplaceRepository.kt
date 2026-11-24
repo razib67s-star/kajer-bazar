@@ -241,6 +241,70 @@ object MarketplaceRepository {
         }
     }
 
+
+    data class DirectoryWorker(val id: String, val fullName: String, val district: String, val upazila: String, val avatarUrl: String)
+
+    suspend fun getWorkerDirectory(token: String): Result<List<DirectoryWorker>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/messaging_directory?select=id,full_name,district,upazila,avatar_url&role=eq.worker&order=updated_at.desc&limit=100", token)
+            if (status !in 200..299) error("কর্মীর তালিকা পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                DirectoryWorker(row.getString("id"), row.optString("full_name"), row.optString("district"), row.optString("upazila"), row.optString("avatar_url"))
+            }
+        }
+    }
+
+    suspend fun getSavedWorkerIds(token: String): Result<Set<String>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/saved_workers?select=worker_id&order=created_at.desc&limit=300", token)
+            if (status !in 200..299) error("সংরক্ষিত কর্মীর তালিকা পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i -> rows.getJSONObject(i).getString("worker_id") }.toSet()
+        }
+    }
+
+    suspend fun setWorkerSaved(token: String, employerId: String, workerId: String, saved: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val employer = URLEncoder.encode(employerId, "UTF-8")
+            val worker = URLEncoder.encode(workerId, "UTF-8")
+            val result = if (saved) request("/rest/v1/saved_workers", token, "POST",
+                JSONObject().put("employer_id", employerId).put("worker_id", workerId))
+            else request("/rest/v1/saved_workers?employer_id=eq.$employer&worker_id=eq.$worker", token, "DELETE")
+            if (result.first !in 200..299) error("পছন্দের কর্মী তালিকা হালনাগাদ হয়নি (${result.first}): ${result.second}")
+        }
+    }
+
+    data class SupportTicket(
+        val id: String, val category: String, val subject: String, val body: String,
+        val status: String, val adminReply: String, val createdAt: String
+    )
+
+    suspend fun getSupportTickets(token: String): Result<List<SupportTicket>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/support_tickets?select=id,category,subject,body,status,admin_reply,created_at&order=created_at.desc&limit=50", token)
+            if (status !in 200..299) error("অভিযোগ ও সহায়তার তালিকা পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i ->
+                val row = rows.getJSONObject(i)
+                SupportTicket(row.getString("id"), row.optString("category"), row.optString("subject"),
+                    row.optString("body"), row.optString("status"), row.optString("admin_reply"), row.optString("created_at"))
+            }
+        }
+    }
+
+    suspend fun createSupportTicket(token: String, userId: String, category: String, subject: String, body: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(category in setOf("account","job","worker","employer","message","safety","other")) { "সঠিক বিভাগ নির্বাচন করুন।" }
+            require(subject.trim().length in 3..120) { "বিষয় ৩ থেকে ১২০ অক্ষরের মধ্যে লিখুন।" }
+            require(body.trim().length in 10..3000) { "বিস্তারিত ১০ থেকে ৩০০০ অক্ষরের মধ্যে লিখুন।" }
+            val (status, response) = request("/rest/v1/support_tickets", token, "POST",
+                JSONObject().put("user_id", userId).put("category", category).put("subject", subject.trim()).put("body", body.trim()))
+            if (status !in 200..299) error("অভিযোগ/সহায়তা পাঠানো যায়নি ($status): $response")
+        }
+    }
+
     data class AppSettings(val announcement: String, val supportPhone: String, val maintenanceMode: Boolean)
 
     suspend fun getAppSettings(): Result<AppSettings> = withContext(Dispatchers.IO) {
