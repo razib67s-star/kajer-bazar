@@ -81,6 +81,16 @@ fun KajerBazarApp() {
     var adminJobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var adminEmployerRequests by remember { mutableStateOf<List<MarketplaceRepository.EmployerRequest>>(emptyList()) }
     var jobMessage by remember { mutableStateOf("প্রকাশিত কাজ লোড হচ্ছে…") }
+    var jobSearch by remember { mutableStateOf("") }
+    var districtFilter by remember { mutableStateOf("") }
+    var upazilaFilter by remember { mutableStateOf("") }
+    var categoryFilter by remember { mutableStateOf("") }
+    val filteredJobs = jobs.filter { job ->
+        (jobSearch.isBlank() || listOf(job.title, job.description, job.category, job.district, job.upazila).any { it.contains(jobSearch.trim(), ignoreCase = true) }) &&
+        (districtFilter.isBlank() || job.district.contains(districtFilter.trim(), ignoreCase = true)) &&
+        (upazilaFilter.isBlank() || job.upazila.contains(upazilaFilter.trim(), ignoreCase = true)) &&
+        (categoryFilter.isBlank() || job.category.contains(categoryFilter.trim(), ignoreCase = true))
+    }
     LaunchedEffect(Unit) {
         connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
         val publicJobs = MarketplaceRepository.getPublishedJobsPublic()
@@ -293,11 +303,40 @@ fun KajerBazarApp() {
                         }
                     }
                 }
-                item { Text("প্রকাশিত কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("প্রকাশিত কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = jobSearch, onValueChange = { jobSearch = it.take(100) },
+                            modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text("কাজের নাম বা শব্দ দিয়ে খুঁজুন") }
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = districtFilter, onValueChange = { districtFilter = it.take(60) },
+                                modifier = Modifier.weight(1f), singleLine = true,
+                                label = { Text("জেলা") }
+                            )
+                            OutlinedTextField(
+                                value = upazilaFilter, onValueChange = { upazilaFilter = it.take(60) },
+                                modifier = Modifier.weight(1f), singleLine = true,
+                                label = { Text("উপজেলা") }
+                            )
+                        }
+                        OutlinedTextField(
+                            value = categoryFilter, onValueChange = { categoryFilter = it.take(60) },
+                            modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text("কাজের বিভাগ") }
+                        )
+                        Text("দেখানো হচ্ছে: ${filteredJobs.size}টি কাজ", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
                 if (jobs.isEmpty()) {
                     item { Text(jobMessage, style = MaterialTheme.typography.bodyMedium) }
+                } else if (filteredJobs.isEmpty()) {
+                    item { Text("এই অনুসন্ধান বা এলাকার সঙ্গে মেলে এমন কোনো কাজ পাওয়া যায়নি। ফিল্টার পরিবর্তন করে দেখুন।", style = MaterialTheme.typography.bodyMedium) }
                 } else {
-                    items(jobs, key = { it.id }) { job ->
+                    items(filteredJobs, key = { it.id }) { job ->
                         Card {
                             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 Text(job.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
