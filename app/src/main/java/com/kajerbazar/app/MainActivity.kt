@@ -246,9 +246,11 @@ fun KajerBazarApp() {
                 }
                 if (profile != null) {
                     item {
-                        Card {
-                            Column(Modifier.padding(14.dp)) {
-                                Text("আপনার প্রোফাইল", fontWeight = FontWeight.Bold)
+                        Card(colors = CardDefaults.cardColors(
+                            containerColor = if (profile?.role == "employer") Color(0xFFEAF2FF) else Color(0xFFEAF7F0)
+                        )) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Text(if (profile?.role == "employer") "কাজদাতা প্রোফাইল" else "কর্মী প্রোফাইল", fontWeight = FontWeight.Bold, color = Blue)
                                 if (!profile?.avatarUrl.isNullOrBlank()) {
                                     AsyncImage(
                                         model = profile?.avatarUrl,
@@ -799,8 +801,9 @@ fun KajerBazarApp() {
                             if (busy) Text("আবেদন লোড হচ্ছে…")
                             else if (employerApplications.isEmpty()) Text("এই কাজে এখনো কোনো আবেদন আসেনি।")
                             employerApplications.forEach { application ->
-                                Card {
+                                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F7FF))) {
                                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Text("আবেদনকারীর কর্মী প্রোফাইল", fontWeight = FontWeight.Bold, color = Blue)
                                         Text(application.workerName.ifBlank { "নাম দেওয়া হয়নি" }, fontWeight = FontWeight.Bold)
                                         Text(listOf(application.district, application.upazila).filter { it.isNotBlank() }.joinToString(", "))
                                         if (application.avatarUrl.isNotBlank()) {
