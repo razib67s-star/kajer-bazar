@@ -136,3 +136,26 @@ Draft → Pending moderation → Published → Applications → Worker selected 
 - Release keystore/AAB signing, real-device testing, end-to-end email/OTP/job workflow tests এবং production security review বাকি।
 
 বর্তমান debug APK বা CI build-কে সম্পূর্ণ production app বলা যাবে না। প্রতিটি অসম্পূর্ণ ধাপ বাস্তব পরীক্ষা ও অনুমোদনসহ শেষ না হওয়া পর্যন্ত ব্যবহারকারীর কাছে final install file দেওয়া হবে না।
+
+
+## ব্যবহারকারীর নতুন অনুমোদিত সিদ্ধান্ত — ২৫ নভেম্বর ২০২৬
+
+- লক্ষ্য ব্যবহারকারী: সবাই। কর্মী ও কাজদাতা ছাড়াও কোম্পানি, দোকানদার এবং সাধারণ দর্শনার্থী অ্যাপ ব্যবহার করতে পারবেন। তবে সংবেদনশীল কাজ (আবেদন, পোস্ট, মেসেজ, প্রোফাইল পরিবর্তন) করতে লগইন বাধ্যতামূলক থাকবে।
+- সাধারণ দর্শনার্থী প্রথমে প্রকাশিত কাজ ও অনুমোদিত পাবলিক কনটেন্ট দেখতে পারবেন; ব্যক্তিগত তথ্য, ব্যক্তিগত মেসেজ বা সীমাবদ্ধ যোগাযোগের তথ্য দেখতে পারবেন না।
+- কাজের ধরন অনুযায়ী কর্মী/কাজদাতা প্রোফাইল বেছে নেওয়া যাবে। কোম্পানি/দোকানদারের জন্য কাজদাতা প্রোফাইল ও প্রতিষ্ঠান-তথ্য যাচাইয়ের ধাপ থাকবে।
+- উন্নয়ন ও MVP পর্যায়ে বাজেট শূন্য: নতুন paid API, paid SDK, subscription বা বাধ্যতামূলক paid service যোগ করা যাবে না। বিদ্যমান বিনামূল্যের সীমার মধ্যে কাজ হবে; কোনো ফ্রি-টায়ার সীমা অতিক্রমের ঝুঁকি দেখা দিলে আগে জানাতে হবে।
+- বাস্তব SMS OTP, পেমেন্ট গেটওয়ে, SMS/Push delivery বা লাইভ লেনদেন কেবল প্রয়োজনীয় provider/merchant configuration ও ব্যবহারকারীর অনুমোদনের পর চালু হবে। কোনো ডেমো/স্যান্ডবক্স পেমেন্টকে বাস্তব টাকা হিসেবে দেখানো যাবে না।
+- সব ফিচার একসঙ্গে পরিকল্পিত থাকবে, কিন্তু বাস্তবায়ন ধাপে ধাপে হবে। প্রতিটি ধাপের আগে acceptance criteria, পরে automated test এবং যেখানে সম্ভব বাস্তব ডিভাইস পরীক্ষা লাগবে।
+
+### সম্প্রসারিত বাস্তবায়ন তালিকা
+1. **Core job marketplace:** চাকরি/কাজ পোস্ট, জেলা-উপজেলা ও বিভাগভিত্তিক সার্চ, ফিল্টার, আবেদন, আবেদন-অবস্থা এবং কর্মী/কাজদাতা প্রোফাইল।
+2. **Trust & safety:** পরিচয়/প্রতিষ্ঠান যাচাইয়ের অবস্থা, রিপোর্ট, ব্লক, প্রতারণা সতর্কতা, নিরাপদ যোগাযোগ, গোপনীয়তা নিয়ন্ত্রণ এবং অ্যাডমিন অডিট লগ।
+3. **Community & messaging:** পোস্ট/ছবি/ভিডিও, লাইক/কমেন্ট, ব্যক্তিগত মেসেজ, অনুপযুক্ত কনটেন্ট রিপোর্ট ও moderation।
+4. **Retention & accessibility:** বাংলা-প্রথম UI, ইংরেজি ভাষা, কম ডেটা ব্যবহার, ছোট স্ক্রিনে responsive layout, notification preferences এবং সহজ onboarding।
+5. **Operations:** পূর্ণাঙ্গ admin dashboard, অভিযোগ/বিরোধ ব্যবস্থাপনা, support workflow, monitoring ও backup restore test।
+6. **Payments (পরে):** অনুমোদিত gateway sandbox, refund/dispute workflow ও reconciliation; live payment-এর আগে আইনগত, merchant এবং security approval।
+
+### বর্তমান বিল্ড যাচাইয়ের নিয়ম
+- GitHub Actions-এ unit test, debug APK assemble, signature/package verification এবং Android emulator install/launch সফল না হওয়া পর্যন্ত build-কে verified বলা যাবে না।
+- CI-তে তৈরি debug/test APK-কে production release বলা যাবে না। ব্যবহারকারীর ফোনে install ও গুরুত্বপূর্ণ user journey পরীক্ষা আলাদা acceptance step।
+- Supabase Security Advisor-এর SECURITY DEFINER সতর্কতা প্রতিটি function-এর body ও authorization check যাচাই করে triage করতে হবে; সতর্কতা আছে বলেই অন্ধভাবে function permission খুলে/বন্ধ করা যাবে না।
