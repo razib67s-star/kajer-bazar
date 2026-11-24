@@ -238,13 +238,13 @@ fun KajerBazarApp() {
                                     )
                                 }
                                 Text("নাম: ${profile?.fullName?.ifBlank { "নাম যোগ করা হয়নি" }}")
-                                Text("মোবাইল: ${profile?.contactPhone?.ifBlank { "যোগ করা হয়নি" }}")
+                                Text("মোবাইল: ${profile?.contactPhone?.ifBlank { profile?.authPhone?.ifBlank { "যোগ করা হয়নি" } ?: "যোগ করা হয়নি" }}")
                                 Text("কাজের ধরন: ${profile?.workType?.ifBlank { "যোগ করা হয়নি" }}")
                                 OutlinedButton(onClick = {
                                     profileFullName = profile?.fullName.orEmpty()
                                     profileDistrict = profile?.district.orEmpty()
                                     profileUpazila = profile?.upazila.orEmpty()
-                                    profileContactPhone = profile?.contactPhone.orEmpty()
+                                    profileContactPhone = profile?.contactPhone?.ifBlank { profile?.authPhone.orEmpty() }.orEmpty()
                                     profileCurrentAddress = profile?.currentAddress.orEmpty()
                                     profilePermanentAddress = profile?.permanentAddress.orEmpty()
                                     profileWorkType = profile?.workType.orEmpty()
