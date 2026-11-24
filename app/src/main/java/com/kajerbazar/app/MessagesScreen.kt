@@ -53,10 +53,24 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
         scope.launch {
             loading = true
             val result = MessageRepository.thread(auth, uid, person.id)
-            messages = MessageRepository.allMessages(auth, uid).getOrNull().orEmpty()
-            error = result.exceptionOrNull()?.message.orEmpty()
+            if (result.isSuccess) {
+                messages = messages.filterNot {
+                    (it.senderId == uid && it.receiverId == person.id) ||
+                        (it.senderId == person.id && it.receiverId == uid)
+                } + result.getOrNull().orEmpty()
+                error = ""
+                val readResult = MessageRepository.markRead(auth, uid, person.id)
+                if (readResult.isSuccess) {
+                    val refreshed = MessageRepository.thread(auth, uid, person.id)
+                    if (refreshed.isSuccess) {
+                        messages = messages.filterNot {
+                            (it.senderId == uid && it.receiverId == person.id) ||
+                                (it.senderId == person.id && it.receiverId == uid)
+                        } + refreshed.getOrNull().orEmpty()
+                    }
+                } else error = readResult.exceptionOrNull()?.message.orEmpty()
+            } else error = result.exceptionOrNull()?.message ?: "কথোপকথন লোড হয়নি।"
             loading = false
-            MessageRepository.markRead(auth, uid, person.id)
         }
     }
 
@@ -74,8 +88,14 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                 if (activeChat == null) {
                     messages = MessageRepository.allMessages(auth, uid).getOrNull().orEmpty()
                 } else {
-                    messages = MessageRepository.allMessages(auth, uid).getOrNull().orEmpty()
-                    MessageRepository.markRead(auth, uid, activeChat.id)
+                    val result = MessageRepository.thread(auth, uid, activeChat.id)
+                    if (result.isSuccess) {
+                        messages = messages.filterNot {
+                            (it.senderId == uid && it.receiverId == activeChat.id) ||
+                                (it.senderId == activeChat.id && it.receiverId == uid)
+                        } + result.getOrNull().orEmpty()
+                        MessageRepository.markRead(auth, uid, activeChat.id)
+                    } else error = result.exceptionOrNull()?.message ?: "মেসেজ আপডেট করা যায়নি।"
                 }
             }
         }
@@ -195,9 +215,15 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                         val result = MessageRepository.send(token, userId, person.id, text)
                         if (result.isSuccess) {
                             draft = ""
-                            messages = MessageRepository.allMessages(token, userId).getOrNull().orEmpty()
-                            MessageRepository.markRead(token, userId, person.id)
-                            error = ""
+                            val refreshed = MessageRepository.thread(token, userId, person.id)
+                            if (refreshed.isSuccess) {
+                                messages = messages.filterNot {
+                                    (it.senderId == userId && it.receiverId == person.id) ||
+                                        (it.senderId == person.id && it.receiverId == userId)
+                                } + refreshed.getOrNull().orEmpty()
+                                MessageRepository.markRead(token, userId, person.id)
+                                error = ""
+                            } else error = refreshed.exceptionOrNull()?.message ?: "বার্তা পাঠানো হয়েছে, কিন্তু কথোপকথন রিফ্রেশ হয়নি।"
                         } else error = result.exceptionOrNull()?.message ?: "বার্তা পাঠানো যায়নি।"
                         loading = false
                     }
