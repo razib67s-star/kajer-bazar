@@ -330,7 +330,14 @@ fun KajerBazarApp() {
                         NavigationDrawerItem(
                             icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null) },
                             label = { Text("অ্যাডমিন ড্যাশবোর্ড") }, selected = false,
-                            onClick = { scope.launch { drawerState.close(); mainListState.animateScrollToItem((mainListState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) } },
+                            onClick = {
+                                val adminIndex = 1 +
+                                    (if (appAnnouncement.isNotBlank()) 1 else 0) +
+                                    (if (maintenanceMode) 1 else 0) + 2 +
+                                    (if (profile != null) 1 else 0) + 1 +
+                                    (if (jobs.isEmpty() || filteredJobs.isEmpty()) 1 else filteredJobs.size)
+                                scope.launch { drawerState.close(); mainListState.animateScrollToItem(adminIndex.coerceAtLeast(0)) }
+                            },
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                         )
                     }
