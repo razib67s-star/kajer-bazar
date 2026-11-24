@@ -1,6 +1,8 @@
 package com.kajerbazar.app
 
 import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,14 +43,14 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
         }
     }
 
-    suspend fun publish(uri: Uri, isCameraImage: Boolean = false, bitmap: Bitmap? = null) {
+    suspend fun publish(uri: Uri, isCameraImage: Boolean = false, bitmap: Bitmap? = null, mimeOverride: String? = null) {
         val auth = token
         val uid = userId
         if (auth == null || uid == null) { onLogin(); return }
         busy = true
         status = "আপলোড হচ্ছে…"
         val result = runCatching {
-            val mime = if (isCameraImage) "image/jpeg" else context.contentResolver.getType(uri).orEmpty()
+            val mime = if (isCameraImage) "image/jpeg" else (mimeOverride ?: context.contentResolver.getType(uri).orEmpty())
             val bytes = withContext(Dispatchers.IO) {
                 if (bitmap != null) ByteArrayOutputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 88, out); out.toByteArray() }
                 else context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("ফাইলটি পড়া যায়নি।")
@@ -70,6 +72,12 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { image ->
         if (image != null) scope.launch { publish(Uri.EMPTY, true, image) }
     }
+    var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
+    val recordVideo = rememberLauncherForActivityResult(ActivityResultContracts.TakeVideo()) { saved ->
+        val uri = pendingVideoUri
+        pendingVideoUri = null
+        if (saved && uri != null) scope.launch { publish(uri, mimeOverride = "video/mp4") }
+    }
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) scope.launch { publish(uri) }
     }
@@ -88,8 +96,17 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
             enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("📷 ক্যামেরা দিয়ে ছবি তুলুন") }
         OutlinedButton(onClick = { if (token == null) onLogin() else imagePicker.launch("image/*") },
             enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("গ্যালারি থেকে ছবি দিন") }
+        OutlinedButton(onClick = {
+            if (token == null) onLogin() else runCatching {
+                val dir = File(context.cacheDir, "videos").apply { mkdirs() }
+                val file = File(dir, "kajerbazar-${UUID.randomUUID()}.mp4")
+                val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+                pendingVideoUri = uri
+                recordVideo.launch(uri)
+            }.onFailure { status = it.message ?: "ক্যামেরা চালু করা যায়নি।" }
+        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("🎥 ক্যামেরা দিয়ে ভিডিও রেকর্ড করুন") }
         OutlinedButton(onClick = { if (token == null) onLogin() else videoPicker.launch("video/*") },
-            enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("ভিডিও আপলোড করুন") }
+            enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("গ্যালারি থেকে ভিডিও আপলোড করুন") }
         OutlinedButton(onClick = {
             val room = "kajerbazar-" + UUID.randomUUID().toString().replace("-", "").take(18)
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://meet.jit.si/$room"))
