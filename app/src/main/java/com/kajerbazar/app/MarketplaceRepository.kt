@@ -230,7 +230,7 @@ object MarketplaceRepository {
         runCatching {
             require(announcement.length <= 500 && supportPhone.length <= 20) { "ঘোষণা বা নম্বরের দৈর্ঘ্য বেশি।" }
             val body = JSONObject().put("announcement", announcement).put("support_phone", supportPhone)
-                .put("maintenance_mode", maintenanceMode).put("updated_at", java.time.Instant.now().toString())
+                .put("maintenance_mode", maintenanceMode)
             val (status, response) = request("/rest/v1/app_settings?id=eq.1", token, "PATCH", body)
             if (status !in 200..299) error("অ্যাপ সেটিংস সংরক্ষণ হয়নি ($status): $response")
         }
