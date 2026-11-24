@@ -63,6 +63,11 @@ fun KajerBazarApp() {
     val appContext = LocalContext.current.applicationContext
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(false) }
+    var showAppSettings by remember { mutableStateOf(false) }
+    var appAnnouncement by remember { mutableStateOf("") }
+    var supportPhone by remember { mutableStateOf("") }
+    var maintenanceMode by remember { mutableStateOf(false) }
+    var settingsSaving by remember { mutableStateOf(false) }
     var usePhoneOtp by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -95,6 +100,12 @@ fun KajerBazarApp() {
     }
     LaunchedEffect(Unit) {
         connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
+        val publicSettings = MarketplaceRepository.getAppSettings()
+        publicSettings.getOrNull()?.let { settings ->
+            appAnnouncement = settings.announcement
+            supportPhone = settings.supportPhone
+            maintenanceMode = settings.maintenanceMode
+        }
         val publicJobs = MarketplaceRepository.getPublishedJobsPublic()
         jobs = publicJobs.getOrNull().orEmpty()
         jobMessage = if (publicJobs.isSuccess && jobs.isEmpty()) "এখনো কোনো কাজ প্রকাশিত হয়নি।" else publicJobs.exceptionOrNull()?.message ?: "প্রকাশিত কাজ দেখুন।"
@@ -215,6 +226,7 @@ fun KajerBazarApp() {
                         Text("কাজ খুঁজুন, কাজ দিন", style = MaterialTheme.typography.labelSmall)
                     } },
                     actions = {
+                        TextButton(onClick = { showAppSettings = true }) { Text("সেটিংস", color = Color.White) }
                         TextButton(onClick = { showLogin = true }) {
                             Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
                         }
@@ -228,6 +240,16 @@ fun KajerBazarApp() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item { Card { Text(connectionStatus, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall) } }
+                if (appAnnouncement.isNotBlank()) item {
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2FF))) {
+                        Text("ঘোষণা: $appAnnouncement", modifier = Modifier.padding(12.dp), color = Blue)
+                    }
+                }
+                if (maintenanceMode) item {
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
+                        Text("অ্যাপ রক্ষণাবেক্ষণ চলছে। কিছু সুবিধা সাময়িকভাবে সীমিত থাকতে পারে।", modifier = Modifier.padding(12.dp))
+                    }
+                }
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
                         Column(Modifier.padding(14.dp)) {
@@ -392,6 +414,14 @@ fun KajerBazarApp() {
                 }
                 if (profile?.role == "admin") {
                     item {
+                        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2FF))) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("অ্যাডমিন ড্যাশবোর্ড", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Blue)
+                                Text("অপেক্ষমাণ কাজ: ${adminJobs.size}টি")
+                                Text("কাজদাতা আবেদন: ${adminEmployerRequests.size}টি")
+                                OutlinedButton(onClick = { showAppSettings = true }, modifier = Modifier.fillMaxWidth()) { Text("অ্যাপ সেটিংস পরিচালনা") }
+                            }
+                        }
                         Text("অ্যাডমিন পর্যালোচনা", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Button(onClick = {
                             val token = accessToken
@@ -716,6 +746,60 @@ fun KajerBazarApp() {
                     }) { Text(if (busy) "সংরক্ষণ হচ্ছে…" else "সংরক্ষণ করুন") }
                 },
                 dismissButton = { TextButton(enabled = !busy, onClick = { showProfileForm = false }) { Text("বাতিল") } }
+            )
+        }
+
+        if (showAppSettings) {
+            AlertDialog(
+                onDismissRequest = { if (!settingsSaving) showAppSettings = false },
+                title = { Text(if (profile?.role == "admin") "অ্যাপ সেটিংস / অ্যাডমিন" else "অ্যাপ সেটিংস") },
+                text = {
+                    Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("কাজের বাজার • সংস্করণ 1.1", fontWeight = FontWeight.Bold, color = Blue)
+                        if (appAnnouncement.isNotBlank()) Text("সর্বশেষ ঘোষণা: $appAnnouncement")
+                        if (supportPhone.isNotBlank()) Text("সহায়তা নম্বর: $supportPhone")
+                        if (maintenanceMode) Text("রক্ষণাবেক্ষণ অবস্থা চালু আছে।", color = Color(0xFF8A4B08))
+                        if (profile?.role == "admin") {
+                            Divider()
+                            Text("অ্যাডমিন নিয়ন্ত্রণ", fontWeight = FontWeight.Bold)
+                            OutlinedTextField(
+                                value = appAnnouncement, onValueChange = { appAnnouncement = it.take(500) },
+                                enabled = !settingsSaving, label = { Text("সবার জন্য অ্যাপ ঘোষণা") },
+                                minLines = 2, modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = supportPhone, onValueChange = { supportPhone = it.take(20) },
+                                enabled = !settingsSaving, label = { Text("সহায়তার মোবাইল নম্বর") },
+                                singleLine = true, modifier = Modifier.fillMaxWidth()
+                            )
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Text("রক্ষণাবেক্ষণ মোড", modifier = Modifier.weight(1f))
+                                Switch(checked = maintenanceMode, onCheckedChange = { maintenanceMode = it }, enabled = !settingsSaving)
+                            }
+                            Text("এই পরিবর্তন সব ব্যবহারকারীর অ্যাপে দেখা যাবে।", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Text("সহায়তা বা অ্যাপ-সংক্রান্ত তথ্যের জন্য উপরের নম্বর ব্যবহার করুন।", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                confirmButton = {
+                    if (profile?.role == "admin") TextButton(enabled = !settingsSaving, onClick = {
+                        val token = accessToken
+                        if (token.isNullOrBlank()) {
+                            jobMessage = "সেটিংস পরিবর্তনের জন্য অ্যাডমিন হিসেবে লগইন করুন।"
+                        } else {
+                            settingsSaving = true
+                            scope.launch {
+                                val result = MarketplaceRepository.updateAppSettings(token, appAnnouncement.trim(), supportPhone.trim(), maintenanceMode)
+                                settingsSaving = false
+                                jobMessage = if (result.isSuccess) "অ্যাপ সেটিংস সংরক্ষণ হয়েছে।" else result.exceptionOrNull()?.message ?: "সেটিংস সংরক্ষণ হয়নি।"
+                                if (result.isSuccess) showAppSettings = false
+                            }
+                        }
+                    }) { Text(if (settingsSaving) "সংরক্ষণ হচ্ছে…" else "সেটিংস সংরক্ষণ") }
+                },
+                dismissButton = { TextButton(enabled = !settingsSaving, onClick = { showAppSettings = false }) { Text("বন্ধ") } }
             )
         }
 
