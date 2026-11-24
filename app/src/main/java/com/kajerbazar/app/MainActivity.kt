@@ -367,6 +367,12 @@ fun KajerBazarApp() {
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                         )
                     }
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) },
+                        label = { Text("অভিযোগ ও সহায়তা") }, selected = false,
+                        onClick = { scope.launch { drawerState.close() }; selectedPage = "support"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = null) },
@@ -409,10 +415,7 @@ fun KajerBazarApp() {
                 NavigationBar {
                     NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
                     NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ খুঁজুন") })
-                    NavigationBarItem(selected = selectedPage == "activity", onClick = {
-                        selectedPage = "activity"
-                        scope.launch { mainListState.animateScrollToItem(0) }
-                    }, icon = { Icon(Icons.Default.ListAlt, contentDescription = null) }, label = { Text("কার্যক্রম") })
+                    NavigationBarItem(selected = selectedPage == "workers", onClick = { selectedPage = "workers"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("কর্মী") })
                     NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("মেসেজ") })
                     NavigationBarItem(selected = selectedPage == "media", onClick = { selectedPage = "media"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("ভিডিও") })
                     NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
@@ -424,6 +427,12 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (selectedPage == "workers") item {
+                    WorkerDirectoryScreen(token = accessToken, userId = userId, isEmployer = profile?.role == "employer", onLogin = { showLogin = true })
+                }
+                if (selectedPage == "support") item {
+                    SupportCenterScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
                 if (selectedPage == "messages") item {
                     MessagesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
                 }
