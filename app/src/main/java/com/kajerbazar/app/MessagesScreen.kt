@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
@@ -61,6 +62,23 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
 
     LaunchedEffect(token, userId) {
         if (token != null && userId != null) refreshInbox()
+    }
+
+    LaunchedEffect(selectedPerson?.id, token, userId) {
+        val auth = token
+        val uid = userId
+        if (auth != null && uid != null) {
+            while (true) {
+                delay(if (selectedPerson == null) 15000L else 4000L)
+                val activeChat = selectedPerson
+                if (activeChat == null) {
+                    messages = MessageRepository.allMessages(auth, uid).getOrNull().orEmpty()
+                } else {
+                    messages = MessageRepository.allMessages(auth, uid).getOrNull().orEmpty()
+                    MessageRepository.markRead(auth, uid, activeChat.id)
+                }
+            }
+        }
     }
 
     if (token == null || userId == null) {
