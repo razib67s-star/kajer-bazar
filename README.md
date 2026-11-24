@@ -33,6 +33,13 @@ GitHub Actions-এর **Build Kajer Bazar APK** workflow debug APK তৈরি 
 - Encrypted session persistence/refresh-এর real-device edge-case test, full admin dashboard এবং overdue-completion scheduler।
 - Release signing, real-device test, privacy/terms ও production readiness review।
 
+## ক্যামেরা ও ভিডিও ফিচার
+- অ্যাপের নিচের **ভিডিও** ট্যাবে সরাসরি ক্যামেরা দিয়ে ছবি তোলা, গ্যালারি থেকে ছবি/ভিডিও নির্বাচন এবং কমিউনিটি ফিডে পোস্ট করা যায়।
+- ছবি/ভিডিও Supabase Storage-এর `community-media` bucket-এ যায়; পোস্ট টেবিল ও Storage-এ RLS দিয়ে ব্যবহারকারীভিত্তিক আপলোড নিয়ন্ত্রণ আছে।
+- ভিডিও ফিডে প্রকাশিত ছবি ও ভিডিও দেখা যায়। সর্বোচ্চ ফাইল আকার ৫০ MB; ভিডিও ফরম্যাট MP4, MOV ও 3GP।
+- লাইভ ভিডিও কল আপাতত Jitsi Meet-এর আলাদা রুম ব্রাউজারে খোলে; এটি অ্যাপের ভিতরে বিল্ট-ইন WebRTC নয় এবং অপর পক্ষকে একই রুম লিংক পাঠাতে হয়।
+- নতুন media screen-এর Android build ও বাস্তব ডিভাইস পরীক্ষা CI-তে যাচাই করতে হবে।
+
 ## Security
 - Play Protect বা Android security feature বন্ধ করে install করবেন না।
 - Publishable key ছাড়া কোনো secret Android app-এ রাখবেন না।
