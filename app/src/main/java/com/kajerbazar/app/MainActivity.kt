@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ListAlt
@@ -192,6 +193,7 @@ fun KajerBazarApp() {
     var jobWage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var selectedPage by remember { mutableStateOf("home") }
     val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
@@ -379,6 +381,14 @@ fun KajerBazarApp() {
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Blue, titleContentColor = Color.White)
                 )
+            },
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
+                    NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ") })
+                    NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("বার্তা") })
+                    NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
+                }
             }
         ) { padding ->
             LazyColumn(
@@ -386,6 +396,13 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (selectedPage == "messages") item {
+                    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("বার্তা", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("নিরাপদ বার্তা আদান-প্রদানের সুবিধা পরবর্তী ধাপে যুক্ত হবে।")
+                    } }
+                }
+                if (selectedPage == "home") {
                 item { Card { Text(connectionStatus, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall) } }
                 if (appAnnouncement.isNotBlank()) item {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2FF))) {
@@ -413,7 +430,8 @@ fun KajerBazarApp() {
                         Text(if (signedInAccount == null) "ইমেইল বা মোবাইল দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
                 }
-                if (profile != null) {
+                }
+                if (selectedPage == "profile" && profile != null) {
                     item {
                         Card(colors = CardDefaults.cardColors(
                             containerColor = if (profile?.role == "employer") Color(0xFFEAF2FF) else Color(0xFFEAF7F0)
@@ -506,9 +524,17 @@ fun KajerBazarApp() {
                         }
                     }
                 }
+                if (selectedPage == "profile" && profile == null) item {
+                    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("আপনার প্রোফাইল", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("প্রোফাইল দেখতে ও সম্পাদনা করতে লগইন করুন।")
+                        Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) { Text("লগইন / অ্যাকাউন্ট খুলুন") }
+                    } }
+                }
+                if (selectedPage == "home" || selectedPage == "jobs") {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("প্রকাশিত কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(if (selectedPage == "home") "সাম্প্রতিক কাজ" else "প্রকাশিত কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         OutlinedTextField(
                             value = jobSearch, onValueChange = { jobSearch = it.take(100) },
                             modifier = Modifier.fillMaxWidth(), singleLine = true,
@@ -534,12 +560,13 @@ fun KajerBazarApp() {
                         Text("দেখানো হচ্ছে: ${filteredJobs.size}টি কাজ", style = MaterialTheme.typography.bodySmall)
                     }
                 }
+                val visibleJobs = if (selectedPage == "home") filteredJobs.take(3) else filteredJobs
                 if (jobs.isEmpty()) {
                     item { Text(jobMessage, style = MaterialTheme.typography.bodyMedium) }
-                } else if (filteredJobs.isEmpty()) {
+                } else if (visibleJobs.isEmpty()) {
                     item { Text("এই অনুসন্ধান বা এলাকার সঙ্গে মেলে এমন কোনো কাজ পাওয়া যায়নি। ফিল্টার পরিবর্তন করে দেখুন।", style = MaterialTheme.typography.bodyMedium) }
                 } else {
-                    items(filteredJobs, key = { it.id }) { job ->
+                    items(visibleJobs, key = { it.id }) { job ->
                         Card {
                             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 Text(job.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
@@ -642,6 +669,7 @@ fun KajerBazarApp() {
                 item {
                     Text("নিরাপত্তা: কাউকে OTP, পাসওয়ার্ড, ব্যাংক তথ্য বা অগ্রিম টাকা দেবেন না। কাজের শর্ত যাচাই করুন।",
                         style = MaterialTheme.typography.bodySmall)
+                }
                 }
             }
         }
