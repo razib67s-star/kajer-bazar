@@ -203,6 +203,32 @@ object AuthRepository {
     }
 
 
+    suspend fun deleteAccount(accessToken: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(accessToken.isNotBlank()) { "লগইন সেশন পাওয়া যায়নি। আবার লগইন করুন।" }
+            val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/delete-account").openConnection() as HttpURLConnection)
+            try {
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 20000
+                connection.readTimeout = 30000
+                connection.doOutput = true
+                connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                connection.setRequestProperty("Authorization", "Bearer $accessToken")
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use { it.write("{}".toByteArray(Charsets.UTF_8)) }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (status !in 200..299) {
+                    val message = runCatching { JSONObject(response).optString("error") }.getOrNull().orEmpty()
+                    error(message.ifBlank { "অ্যাকাউন্ট ডিলিট করা যায়নি ($status)।" })
+                }
+            } finally {
+                connection.disconnect()
+            }
+        }
+    }
+
     suspend fun signOut(accessToken: String) = withContext(Dispatchers.IO) {
         if (accessToken.isNotBlank()) {
             try {
