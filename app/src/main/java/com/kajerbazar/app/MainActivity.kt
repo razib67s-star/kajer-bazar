@@ -542,6 +542,13 @@ fun KajerBazarApp() {
                     }
                 }
                 item {
+                    Text("সবার কাজ ও পোস্ট", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("সব ব্যবহারকারীর প্রকাশিত কাজ, ছবি, ভিডিও ও লেখা এখানে দেখুন।", style = MaterialTheme.typography.bodyMedium)
+                }
+                item {
+                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
+                item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("আপনার প্রয়োজনীয় বিভাগ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("এক চাপেই প্রয়োজনীয় পেজে যান।")
