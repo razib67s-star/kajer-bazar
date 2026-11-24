@@ -294,7 +294,7 @@ fun KajerBazarApp() {
                                     profilePortfolio = profile?.portfolio.orEmpty()
                                     showProfileForm = true
                                 }, modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল সম্পাদনা করুন") }
-                                Text("অ্যাকাউন্ট: ${if (profile?.role == "employer") "কাজদাতা" else "কর্মী"}")
+                                Text("অ্যাকাউন্ট: ${when (profile?.role) { "employer" -> "কাজদাতা / নিয়োগদাতা"; "admin" -> "অ্যাডমিন"; else -> "কর্মী / কাজপ্রার্থী" }}")
                                 Text("এলাকা: ${listOfNotNull(profile?.district, profile?.upazila).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "যোগ করা হয়নি" }}")
                                 if (profile?.role == "worker") {
                                     Button(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) { Text("কাজদাতা হতে আবেদন করুন") }
@@ -621,8 +621,6 @@ fun KajerBazarApp() {
                             label = { Text("জেলা") }, singleLine = true)
                         OutlinedTextField(profileUpazila, { profileUpazila = it.take(100) }, enabled = !busy,
                             label = { Text("উপজেলা") }, singleLine = true)
-                        OutlinedTextField(profileWorkType, { profileWorkType = it.take(100) }, enabled = !busy,
-                            label = { Text("কোন ধরনের কাজ খুঁজছেন / দেন?") }, singleLine = true)
                         if (profile?.role == "employer") {
                             Text("কাজদাতা / প্রতিষ্ঠানের পরিচিতি", fontWeight = FontWeight.Bold, color = Blue)
                             OutlinedTextField(profileOrganizationName, { profileOrganizationName = it.take(160) }, enabled = !busy,
@@ -805,7 +803,20 @@ fun KajerBazarApp() {
                                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                         Text(application.workerName.ifBlank { "নাম দেওয়া হয়নি" }, fontWeight = FontWeight.Bold)
                                         Text(listOf(application.district, application.upazila).filter { it.isNotBlank() }.joinToString(", "))
-                                        if (application.message.isNotBlank()) Text("বার্তা: ${application.message}")
+                                        if (application.avatarUrl.isNotBlank()) {
+                                            AsyncImage(
+                                                model = application.avatarUrl,
+                                                contentDescription = "কর্মীর প্রোফাইল ছবি",
+                                                modifier = Modifier.size(64.dp).clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                        Text("কাজের ধরন: ${application.workType.ifBlank { "উল্লেখ নেই" }}")
+                                        Text("দক্ষতা: ${application.skills.ifBlank { "উল্লেখ নেই" }}")
+                                        Text("অভিজ্ঞতা: ${application.experience.ifBlank { "উল্লেখ নেই" }}")
+                                        Text("কাজের সময়: ${application.availability.ifBlank { "আলোচনা সাপেক্ষ" }}")
+                                        Text("প্রত্যাশিত মজুরি: ${application.expectedWage.ifBlank { "আলোচনা সাপেক্ষ" }}")
+                                        if (application.message.isNotBlank()) Text("আবেদন বার্তা: ${application.message}")
                                         Text("আবেদনের অবস্থা: ${applicationStatusLabel(application.status)}")
                                         if (application.status == "submitted") {
                                             Text("এই কর্মীকে নির্বাচন করলে অন্য জমা দেওয়া আবেদনগুলো প্রত্যাখ্যাত হবে।")
