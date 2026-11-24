@@ -910,7 +910,7 @@ fun KajerBazarApp() {
                 text = {
                     Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("কাজের বাজার • সংস্করণ 1.1", fontWeight = FontWeight.Bold, color = Blue)
+                        Text("কাজের বাজার • সংস্করণ 1.2", fontWeight = FontWeight.Bold, color = Blue)
                         if (appAnnouncement.isNotBlank()) Text("সর্বশেষ ঘোষণা: $appAnnouncement")
                         if (supportPhone.isNotBlank()) Text("সহায়তা নম্বর: $supportPhone")
                         if (maintenanceMode) Text("রক্ষণাবেক্ষণ অবস্থা চালু আছে।", color = Color(0xFF8A4B08))
