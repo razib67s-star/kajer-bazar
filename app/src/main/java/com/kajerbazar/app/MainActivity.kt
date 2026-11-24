@@ -681,7 +681,7 @@ fun KajerBazarApp() {
                                     profileAvailability.trim(),
                                     profileExpectedWage.trim(),
                                     profilePortfolio.trim()
-                                ) else Result.failure(result.exceptionOrNull() ?: IllegalStateException("প্রোফাইল আপডেট হয়নি।"))
+                                ) else Result.failure<Unit>(result.exceptionOrNull() ?: IllegalStateException("প্রোফাইল আপডেট হয়নি।"))
                                 busy = false
                                 if (result.isSuccess && roleResult.isSuccess) {
                                     profile = profile?.copy(
