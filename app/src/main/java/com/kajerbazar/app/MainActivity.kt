@@ -385,8 +385,11 @@ fun KajerBazarApp() {
             bottomBar = {
                 NavigationBar {
                     NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
-                    NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ") })
-                    NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("বার্তা") })
+                    NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ খুঁজুন") })
+                    NavigationBarItem(selected = selectedPage == "activity", onClick = {
+                        selectedPage = "activity"
+                        scope.launch { mainListState.animateScrollToItem(0) }
+                    }, icon = { Icon(Icons.Default.ListAlt, contentDescription = null) }, label = { Text("কার্যক্রম") })
                     NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
                 }
             }
@@ -396,11 +399,79 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (selectedPage == "messages") item {
-                    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("বার্তা", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("নিরাপদ বার্তা আদান-প্রদানের সুবিধা পরবর্তী ধাপে যুক্ত হবে।")
-                    } }
+                if (selectedPage == "activity") item {
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("আপনার কার্যক্রম", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            when (profile?.role) {
+                                "worker" -> {
+                                    Text("আপনার পাঠানো কাজের আবেদন ও সেগুলোর অবস্থা এখানে দেখুন।")
+                                    Button(enabled = !busy, onClick = {
+                                        val token = accessToken
+                                        if (token == null) showLogin = true else {
+                                            busy = true
+                                            scope.launch {
+                                                val result = MarketplaceRepository.getWorkerApplications(token)
+                                                myApplications = result.getOrNull().orEmpty()
+                                                busy = false
+                                                if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "আবেদন পাওয়া যায়নি।"
+                                                showMyApplicationsDialog = true
+                                            }
+                                        }
+                                    }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(if (busy) "লোড হচ্ছে…" else "আমার আবেদন দেখুন")
+                                    }
+                                }
+                                "employer" -> {
+                                    Text("আপনার পোস্ট করা কাজ, আবেদনকারী এবং কর্মী নির্বাচনের কাজ এখান থেকে পরিচালনা করুন।")
+                                    Button(enabled = !busy, onClick = {
+                                        val token = accessToken
+                                        val id = userId
+                                        if (token == null || id == null) showLogin = true else {
+                                            busy = true
+                                            scope.launch {
+                                                val result = MarketplaceRepository.getEmployerJobs(token, id)
+                                                employerJobs = result.getOrNull().orEmpty()
+                                                selectedEmployerJob = null
+                                                employerApplications = emptyList()
+                                                busy = false
+                                                if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "কাজের তালিকা পাওয়া যায়নি।"
+                                                showApplicationsDialog = true
+                                            }
+                                        }
+                                    }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(if (busy) "লোড হচ্ছে…" else "আমার পোস্ট ও আবেদন দেখুন")
+                                    }
+                                    OutlinedButton(onClick = { showJobForm = true }, modifier = Modifier.fillMaxWidth()) {
+                                        Text("নতুন কাজ পোস্ট করুন")
+                                    }
+                                }
+                                "admin" -> {
+                                    Text("কাজ ও কাজদাতা আবেদনের পর্যালোচনা এখানে পরিচালনা করুন।")
+                                    Button(enabled = !busy, onClick = {
+                                        val token = accessToken
+                                        if (token != null) scope.launch {
+                                            busy = true
+                                            val queues = MarketplaceRepository.getAdminQueues(token)
+                                            adminJobs = queues.getOrNull()?.first.orEmpty()
+                                            adminEmployerRequests = queues.getOrNull()?.second.orEmpty()
+                                            busy = false
+                                            jobMessage = if (queues.isSuccess) "অ্যাডমিন তালিকা হালনাগাদ হয়েছে।" else queues.exceptionOrNull()?.message ?: "তালিকা পাওয়া যায়নি।"
+                                            selectedPage = "home"
+                                        }
+                                    }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(if (busy) "লোড হচ্ছে…" else "অ্যাডমিন পর্যালোচনা খুলুন")
+                                    }
+                                }
+                                else -> {
+                                    Text("লগইন করে আপনার আবেদন বা কাজদাতার পোস্টের অগ্রগতি দেখতে পারবেন।")
+                                    Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
+                                        Text("লগইন / অ্যাকাউন্ট খুলুন")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 if (selectedPage == "home") {
                 item { Card { Text(connectionStatus, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall) } }
