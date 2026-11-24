@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
 
     const userId = user.id;
     const { data: profile, error: profileError } = await admin
-      .from("profiles").select("role").eq("id", userId).maybeSingle();
+      .from("profiles").select("role,avatar_url").eq("id", userId).maybeSingle();
     if (profileError) throw profileError;
     if (profile?.role === "admin") {
       return reply({ error: "প্রধান অ্যাডমিন অ্যাকাউন্ট অ্যাপ থেকে মুছতে পারবেন না।" }, 403);
@@ -89,6 +89,15 @@ Deno.serve(async (req: Request) => {
     const { error: appsByUserError } = await admin
       .from("applications").delete().eq("worker_id", userId);
     if (appsByUserError) throw appsByUserError;
+
+    const { data: avatarFiles, error: avatarListError } = await admin.storage
+      .from("avatars").list(userId);
+    if (avatarListError) throw avatarListError;
+    const avatarPaths = (avatarFiles ?? []).map((file) => `${userId}/${file.name}`);
+    if (avatarPaths.length > 0) {
+      const { error: avatarDeleteError } = await admin.storage.from("avatars").remove(avatarPaths);
+      if (avatarDeleteError) throw avatarDeleteError;
+    }
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
     if (deleteError) throw deleteError;
