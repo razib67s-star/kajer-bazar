@@ -83,9 +83,10 @@ object MediaRepository {
             }
         }
 
-    suspend fun feed(token: String? = null, userId: String? = null): Result<List<Post>> = withContext(Dispatchers.IO) {
+    suspend fun feed(token: String? = null, userId: String? = null, authorId: String? = null): Result<List<Post>> = withContext(Dispatchers.IO) {
         runCatching {
-            val (status, body) = request("/rest/v1/media_posts?select=id,user_id,media_type,storage_path,caption,created_at,author_name,author_avatar_url,like_count,comment_count&order=created_at.desc&limit=100", token)
+            val authorFilter = if (authorId.isNullOrBlank()) "" else "&user_id=eq.${URLEncoder.encode(authorId, "UTF-8")}"
+            val (status, body) = request("/rest/v1/media_posts?select=id,user_id,media_type,storage_path,caption,created_at,author_name,author_avatar_url,like_count,comment_count&order=created_at.desc&limit=100$authorFilter", token)
             if (status !in 200..299) error("ভিডিও ফিড লোড হয়নি ($status): $body")
             val likedIds = if (!token.isNullOrBlank() && !userId.isNullOrBlank()) {
                 val uid = URLEncoder.encode(userId, "UTF-8")
