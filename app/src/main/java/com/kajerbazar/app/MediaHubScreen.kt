@@ -29,7 +29,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
-fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
+fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenProfile: (String) -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var caption by remember { mutableStateOf("") }
@@ -154,7 +154,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Text(status, style = MaterialTheme.typography.bodySmall)
         if (posts.isEmpty() && !busy) Text("এখনো কোনো ছবি বা ভিডিও পোস্ট নেই।")
-        posts.forEach { post -> MediaPostCard(post, token, userId, onLogin) { refresh() } }
+        posts.forEach { post -> MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() } }
     }
     liveRoomUrl?.let { roomUrl ->
         AlertDialog(
@@ -184,7 +184,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit) {
 }
 
 @Composable
-fun MediaPostsSection(token: String?, userId: String?, onLogin: () -> Unit) {
+fun MediaPostsSection(token: String?, userId: String?, onLogin: () -> Unit, profileUserId: String? = userId, onOpenProfile: (String) -> Unit = {}) {
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -192,23 +192,24 @@ fun MediaPostsSection(token: String?, userId: String?, onLogin: () -> Unit) {
         val uid = userId ?: return
         scope.launch {
             loading = true
-            posts = MediaRepository.feed(token, uid).getOrNull().orEmpty().filter { it.userId == uid }
+            posts = MediaRepository.feed(token, uid, profileUserId).getOrNull().orEmpty()
             loading = false
         }
     }
     LaunchedEffect(token, userId) { refresh() }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         HorizontalDivider()
-        Text("আমার পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(if (profileUserId == userId) "আমার পোস্ট" else "এই প্রোফাইলের পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (!loading && posts.isEmpty()) Text("আপনার প্রকাশিত ছবি ও ভিডিও এখানে দেখা যাবে।")
-        posts.forEach { post -> MediaPostCard(post, token, userId, onLogin) { refresh() } }
+        posts.forEach { post -> MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() } }
     }
 }
 
 @Composable
 private fun MediaPostCard(
-    post: MediaRepository.Post, token: String?, userId: String?, onLogin: () -> Unit, onChanged: () -> Unit
+    post: MediaRepository.Post, token: String?, userId: String?, onLogin: () -> Unit,
+    onOpenProfile: (String) -> Unit = {}, onChanged: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -231,7 +232,9 @@ private fun MediaPostCard(
                     }
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(post.authorName.ifBlank { "ব্যবহারকারী" }, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { onOpenProfile(post.userId) }, contentPadding = PaddingValues(0.dp)) {
+                        Text(post.authorName.ifBlank { "ব্যবহারকারী" }, fontWeight = FontWeight.Bold)
+                    }
                     Text(post.createdAt.take(16).replace("T", " "), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                 }
                 Text(when (post.mediaType) { "video" -> "ভিডিও"; "image" -> "ছবি"; else -> "লেখা পোস্ট" },
