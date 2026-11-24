@@ -78,6 +78,7 @@ fun KajerBazarApp() {
     var supportPhone by remember { mutableStateOf("") }
     var maintenanceMode by remember { mutableStateOf(false) }
     var settingsSaving by remember { mutableStateOf(false) }
+    var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var usePhoneOtp by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -934,6 +935,47 @@ fun KajerBazarApp() {
                         } else {
                             Text("সহায়তা বা অ্যাপ-সংক্রান্ত তথ্যের জন্য উপরের নম্বর ব্যবহার করুন।", style = MaterialTheme.typography.bodySmall)
                         }
+                        if (profile != null) {
+                            Divider()
+                            Text("আপনার অ্যাকাউন্ট", fontWeight = FontWeight.Bold)
+                            OutlinedButton(
+                                enabled = !busy && !settingsSaving,
+                                onClick = {
+                                    profileFullName = profile?.fullName.orEmpty()
+                                    profileDistrict = profile?.district.orEmpty()
+                                    profileUpazila = profile?.upazila.orEmpty()
+                                    profileContactPhone = profile?.contactPhone?.ifBlank { profile?.authPhone.orEmpty() }.orEmpty()
+                                    profileCurrentAddress = profile?.currentAddress.orEmpty()
+                                    profilePermanentAddress = profile?.permanentAddress.orEmpty()
+                                    profileWorkType = profile?.workType.orEmpty()
+                                    profileSkills = profile?.skills.orEmpty()
+                                    profileAvatarUrl = profile?.avatarUrl.orEmpty()
+                                    profileOrganizationName = profile?.organizationName.orEmpty()
+                                    profileOrganizationType = profile?.organizationType.orEmpty()
+                                    profileOrganizationDetails = profile?.organizationDetails.orEmpty()
+                                    profileContactPerson = profile?.contactPerson.orEmpty()
+                                    profileExperience = profile?.experience.orEmpty()
+                                    profileAvailability = profile?.availability.orEmpty()
+                                    profileExpectedWage = profile?.expectedWage.orEmpty()
+                                    profilePortfolio = profile?.portfolio.orEmpty()
+                                    showAppSettings = false
+                                    showProfileForm = true
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text(if (profile?.role == "worker") "কর্মী প্রোফাইল সম্পাদনা করুন" else "প্রোফাইল সম্পাদনা করুন") }
+                            if (profile?.role != "admin") {
+                                OutlinedButton(
+                                    enabled = !busy && !settingsSaving,
+                                    onClick = { showDeleteAccountConfirm = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                ) { Text("স্থায়ীভাবে অ্যাকাউন্ট ডিলিট করুন") }
+                            }
+                            Text("অ্যাকাউন্ট ডিলিট করলে প্রোফাইল, কাজ ও আবেদন-সংক্রান্ত ব্যক্তিগত তথ্য মুছে যাবে। পেমেন্ট রেকর্ড থাকলে আগে সহায়তা নিতে হবে।",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        } else {
+                            TextButton(onClick = { showAppSettings = false; showLogin = true }) { Text("লগইন / নতুন অ্যাকাউন্ট") }
+                        }
                     }
                 },
                 confirmButton = {
@@ -953,6 +995,51 @@ fun KajerBazarApp() {
                     }) { Text(if (settingsSaving) "সংরক্ষণ হচ্ছে…" else "সেটিংস সংরক্ষণ") }
                 },
                 dismissButton = { TextButton(enabled = !settingsSaving, onClick = { showAppSettings = false }) { Text("বন্ধ") } }
+            )
+        }
+
+        if (showDeleteAccountConfirm) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showDeleteAccountConfirm = false },
+                title = { Text("অ্যাকাউন্ট স্থায়ীভাবে ডিলিট করবেন?") },
+                text = {
+                    Text("এটি ফিরিয়ে আনা যাবে না। আপনার প্রোফাইল, পোস্ট করা কাজ, আবেদন ও সংশ্লিষ্ট ব্যক্তিগত তথ্য মুছে যাবে। কোনো পেমেন্ট রেকর্ড থাকলে সুরক্ষার কারণে ডিলিট বন্ধ হবে এবং সহায়তায় যোগাযোগ করতে হবে।")
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !busy,
+                        onClick = {
+                            val token = accessToken
+                            if (token.isNullOrBlank()) {
+                                jobMessage = "অ্যাকাউন্ট ডিলিট করতে আবার লগইন করুন।"
+                                showDeleteAccountConfirm = false
+                            } else {
+                                busy = true
+                                scope.launch {
+                                    val result = AuthRepository.deleteAccount(token)
+                                    busy = false
+                                    if (result.isSuccess) {
+                                        AuthRepository.signOut(token)
+                                        withContext(Dispatchers.IO) { SessionStore.clear(appContext) }
+                                        signedInAccount = null
+                                        accessToken = null
+                                        userId = null
+                                        profile = null
+                                        showDeleteAccountConfirm = false
+                                        showAppSettings = false
+                                        jobMessage = "আপনার অ্যাকাউন্ট স্থায়ীভাবে ডিলিট হয়েছে।"
+                                    } else {
+                                        jobMessage = result.exceptionOrNull()?.message ?: "অ্যাকাউন্ট ডিলিট করা যায়নি।"
+                                        showDeleteAccountConfirm = false
+                                    }
+                                }
+                            }
+                        }
+                    ) { Text(if (busy) "ডিলিট হচ্ছে…" else "হ্যাঁ, ডিলিট করুন", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    TextButton(enabled = !busy, onClick = { showDeleteAccountConfirm = false }) { Text("বাতিল") }
+                }
             )
         }
 
