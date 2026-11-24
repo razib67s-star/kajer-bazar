@@ -34,7 +34,7 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build and run unit tests
+      - name: Build unit-test tasks and APK
         run: gradle --no-daemon clean testDebugUnitTest assembleDebug
 
       - name: Verify APK signature and package
@@ -60,7 +60,7 @@ jobs:
           retention-days: 30
           compression-level: 0
 
-      - name: Install and launch APK in Android emulator
+      - name: Run Android instrumentation tests and launch app in emulator
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: yes
@@ -71,6 +71,10 @@ jobs:
           emulator-boot-timeout: 600
           disable-animations: true
           script: |
-            # Keep emulator smoke validation independent of the unstable instrumentation runner.
-            adb install -r app/build/outputs/apk/debug/app-debug.apk && adb shell am force-stop com.kajerbazar.app.test && adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity && sleep 15 && adb shell pidof com.kajerbazar.app.test >/dev/null && echo "PASS: APK installed and app process remained alive for 15 seconds" || { echo "Emulator install or launch failed; recent logcat follows"; adb logcat -d -t 6000 || true; exit 1; }
-
+            gradle --no-daemon connectedDebugAndroidTest
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop com.kajerbazar.app.test
+            adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity
+            sleep 15
+            adb shell pidof com.kajerbazar.app.test >/dev/null
+            echo "PASS: instrumentation tests passed; APK installed and app process remained alive for 15 seconds"
