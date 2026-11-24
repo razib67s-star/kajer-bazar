@@ -541,6 +541,32 @@ fun KajerBazarApp() {
                         Text(if (signedInAccount == null) "ইমেইল বা মোবাইল দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
                 }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("আপনার প্রয়োজনীয় বিভাগ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("এক চাপেই প্রয়োজনীয় পেজে যান।")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { selectedPage = "jobs" }, modifier = Modifier.weight(1f)) { Text("🔎 কাজ খুঁজুন") }
+                            OutlinedButton(onClick = {
+                                if (profile?.role == "employer") showJobForm = true
+                                else if (profile == null) showLogin = true
+                                else showEmployerForm = true
+                            }, modifier = Modifier.weight(1f)) { Text("➕ কাজ পোস্ট") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { selectedPage = "workers" }, modifier = Modifier.weight(1f)) { Text("👷 কর্মী খুঁজুন") }
+                            OutlinedButton(onClick = { selectedPage = "messages" }, modifier = Modifier.weight(1f)) { Text("💬 মেসেজ") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { selectedPage = "media" }, modifier = Modifier.weight(1f)) { Text("🎬 ভিডিও ও পোস্ট") }
+                            OutlinedButton(onClick = { selectedPage = "activity" }, modifier = Modifier.weight(1f)) { Text("📋 আমার কার্যক্রম") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { selectedPage = "profile"; if (profile == null) showLogin = true }, modifier = Modifier.weight(1f)) { Text("👤 প্রোফাইল") }
+                            OutlinedButton(onClick = { selectedPage = "support" }, modifier = Modifier.weight(1f)) { Text("🛟 সহায়তা") }
+                        }
+                    }
+                }
                 }
                 if (selectedPage == "profile" && profile != null) {
                     item {
@@ -811,7 +837,7 @@ fun KajerBazarApp() {
                     }
                 }
                 item { Text(jobMessage, style = MaterialTheme.typography.bodySmall) }
-                item { PaymentScreen() }
+                // পেমেন্ট সুবিধা আপাতত বন্ধ রাখা হয়েছে।
                 item {
                     Text("নিরাপত্তা: কাউকে OTP, পাসওয়ার্ড, ব্যাংক তথ্য বা অগ্রিম টাকা দেবেন না। কাজের শর্ত যাচাই করুন।",
                         style = MaterialTheme.typography.bodySmall)
