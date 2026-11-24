@@ -213,6 +213,29 @@ object MarketplaceRepository {
         }
     }
 
+    data class AppSettings(val announcement: String, val supportPhone: String, val maintenanceMode: Boolean)
+
+    suspend fun getAppSettings(): Result<AppSettings> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/app_settings?select=announcement,support_phone,maintenance_mode&id=eq.1", null)
+            if (status !in 200..299) error("অ্যাপ সেটিংস পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            if (rows.length() == 0) error("অ্যাপ সেটিংস পাওয়া যায়নি।")
+            val row = rows.getJSONObject(0)
+            AppSettings(row.optString("announcement"), row.optString("support_phone"), row.optBoolean("maintenance_mode"))
+        }
+    }
+
+    suspend fun updateAppSettings(token: String, announcement: String, supportPhone: String, maintenanceMode: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(announcement.length <= 500 && supportPhone.length <= 20) { "ঘোষণা বা নম্বরের দৈর্ঘ্য বেশি।" }
+            val body = JSONObject().put("announcement", announcement).put("support_phone", supportPhone)
+                .put("maintenance_mode", maintenanceMode).put("updated_at", java.time.Instant.now().toString())
+            val (status, response) = request("/rest/v1/app_settings?id=eq.1", token, "PATCH", body)
+            if (status !in 200..299) error("অ্যাপ সেটিংস সংরক্ষণ হয়নি ($status): $response")
+        }
+    }
+
     data class EmployerRequest(val id: String, val businessName: String, val contactName: String, val district: String, val upazila: String)
     data class EmployerJob(val id: String, val title: String, val status: String)
     data class EmployerApplication(
