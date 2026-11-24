@@ -56,7 +56,7 @@ fun KajerBazarApp() {
     val appContext = LocalContext.current.applicationContext
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(false) }
-    var usePhoneOtp by remember { mutableStateOf(true) }
+    var usePhoneOtp by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
