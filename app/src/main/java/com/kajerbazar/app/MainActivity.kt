@@ -62,6 +62,20 @@ private fun applicationStatusLabel(status: String): String = when (status) {
     else -> status
 }
 
+@Composable
+private fun ProfileInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.Top
+    ) {
+        Text(label, modifier = Modifier.width(116.dp), color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium)
+        Text(value.ifBlank { "তথ্য যোগ করা হয়নি" }, modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
