@@ -142,10 +142,12 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
             }
         }
         OutlinedButton(onClick = {
-            val room = "kajerbazar-" + UUID.randomUUID().toString().replace("-", "").take(18)
-            liveRoomUrl = "https://meet.jit.si/$room"
-        }, modifier = Modifier.fillMaxWidth()) { Text("🔴 লাইভ ভিডিও কল / রুম তৈরি করুন") }
-        Text("লাইভ কল Jitsi Meet-এর রুম লিংকে খুলবে। অপর পক্ষকে একই লিংক পাঠাতে হবে।",
+            if (token == null || userId == null) onLogin() else {
+                val room = "kajerbazar-" + UUID.randomUUID().toString().replace("-", "").take(18)
+                liveRoomUrl = "https://meet.jit.si/$room"
+            }
+        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("🔴 ভিডিও কল রুম তৈরি করুন") }
+        Text("এটি ব্যক্তিগত ভিডিও কল রুমের লিংক (Jitsi Meet)—পাবলিক লাইভ সম্প্রচার নয়। কল করতে লগইন লাগবে; অপর পক্ষকে একই লিংক পাঠান।",
             style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("সাম্প্রতিক পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -159,8 +161,8 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     liveRoomUrl?.let { roomUrl ->
         AlertDialog(
             onDismissRequest = { liveRoomUrl = null },
-            title = { Text("লাইভ ভিডিও রুম তৈরি হয়েছে") },
-            text = { Text("এই লিংকটি যাঁর সঙ্গে কথা বলবেন তাঁকে পাঠান। দুজন একই লিংকে প্রবেশ করলে ভিডিও কল শুরু হবে।\n\n$roomUrl") },
+            title = { Text("ভিডিও কল রুম তৈরি হয়েছে") },
+            text = { Text("এটি Jitsi Meet-এর বাহ্যিক ভিডিও কল রুম, পাবলিক লাইভ সম্প্রচার নয়। যাঁর সঙ্গে কথা বলবেন তাঁকে লিংক পাঠান। লিংকটি যাঁদের কাছে থাকবে তাঁরা রুমে প্রবেশ করতে পারবেন।\n\n$roomUrl") },
             confirmButton = {
                 TextButton(onClick = {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(roomUrl)))
