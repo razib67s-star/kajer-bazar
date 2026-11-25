@@ -220,6 +220,10 @@ private fun MediaPostCard(
     var comments by remember(post.id) { mutableStateOf<List<MediaRepository.Comment>>(emptyList()) }
     var commentText by remember(post.id) { mutableStateOf("") }
     var commentLoading by remember(post.id) { mutableStateOf(false) }
+    var showReport by remember(post.id) { mutableStateOf(false) }
+    var reportReason by remember(post.id) { mutableStateOf("") }
+    var reportSending by remember(post.id) { mutableStateOf(false) }
+    var reportMessage by remember(post.id) { mutableStateOf("") }
 
     Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -286,6 +290,13 @@ private fun MediaPostCard(
                     context.startActivity(Intent.createChooser(share, "পোস্ট শেয়ার করুন"))
                 }) { Text("↗ শেয়ার") }
             }
+            TextButton(onClick = {
+                if (token == null || userId == null) onLogin() else {
+                    reportReason = ""
+                    reportMessage = ""
+                    showReport = true
+                }
+            }, modifier = Modifier.fillMaxWidth()) { Text("⚑ পোস্ট রিপোর্ট করুন") }
             if (showComments) {
                 HorizontalDivider()
                 if (commentLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -323,5 +334,46 @@ private fun MediaPostCard(
                 }
             }
         }
+    }
+
+    if (showReport) {
+        AlertDialog(
+            onDismissRequest = { if (!reportSending) showReport = false },
+            title = { Text("পোস্ট রিপোর্ট করুন") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("নিরাপত্তা বা অনুপযুক্ত পোস্টের রিপোর্ট সাপোর্ট টিমের কাছে জমা হবে।")
+                    OutlinedTextField(
+                        value = reportReason,
+                        onValueChange = { reportReason = it.take(2000) },
+                        label = { Text("রিপোর্টের কারণ") },
+                        minLines = 3,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (reportMessage.isNotBlank()) Text(reportMessage, color = MaterialTheme.colorScheme.error)
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = !reportSending && reportReason.trim().length >= 10, onClick = {
+                    val auth = token
+                    val uid = userId
+                    if (auth != null && uid != null) scope.launch {
+                        reportSending = true
+                        val reportBody = "পোস্ট ID: ${post.id}\nলেখক ID: ${post.userId}\nপোস্টের লেখা: ${post.caption.take(500)}\nরিপোর্টের কারণ: ${reportReason.trim()}"
+                        val result = MarketplaceRepository.createSupportTicket(
+                            auth, uid, "safety", "কমিউনিটি পোস্ট রিপোর্ট", reportBody
+                        )
+                        reportSending = false
+                        if (result.isSuccess) {
+                            showReport = false
+                            reportReason = ""
+                        } else reportMessage = result.exceptionOrNull()?.message ?: "রিপোর্ট জমা হয়নি।"
+                    }
+                }) { Text(if (reportSending) "পাঠানো হচ্ছে…" else "রিপোর্ট পাঠান") }
+            },
+            dismissButton = {
+                TextButton(enabled = !reportSending, onClick = { showReport = false }) { Text("বাতিল") }
+            }
+        )
     }
 }
