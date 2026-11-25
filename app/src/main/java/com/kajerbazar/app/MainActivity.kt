@@ -619,98 +619,151 @@ fun KajerBazarApp() {
                 }
                 if (selectedPage == "profile" && profile != null) {
                     item {
-                        Card(colors = CardDefaults.cardColors(
-                            containerColor = if (profile?.role == "employer") Color(0xFFEAF2FF) else Color(0xFFEAF7F0)
-                        )) {
-                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Text(if (profile?.role == "employer") "কাজদাতা প্রোফাইল" else "কর্মী প্রোফাইল", fontWeight = FontWeight.Bold, color = Blue)
-                                if (!profile?.avatarUrl.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = profile?.avatarUrl,
-                                        contentDescription = "প্রোফাইল ছবি",
-                                        modifier = Modifier.size(76.dp).clip(CircleShape),
-                                        contentScale = ContentScale.Crop
+                        val currentProfile = profile!!
+                        val isEmployerProfile = currentProfile.role == "employer"
+                        val displayName = currentProfile.fullName.ifBlank { "নাম যোগ করা হয়নি" }
+                        val roleLabel = when (currentProfile.role) {
+                            "employer" -> "কাজদাতা / প্রতিষ্ঠান"
+                            "admin" -> "অ্যাডমিন"
+                            else -> "কর্মী / কাজপ্রার্থী"
+                        }
+                        val areaLabel = listOfNotNull(currentProfile.district.takeIf { it.isNotBlank() }, currentProfile.upazila.takeIf { it.isNotBlank() }).joinToString(", ").ifBlank { "এলাকা যোগ করা হয়নি" }
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.extraLarge,
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                        ) {
+                            Column {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().height(156.dp)
+                                        .background(
+                                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                                colors = if (isEmployerProfile) listOf(Color(0xFF123B70), Color(0xFF3B82B8), Color(0xFFB8D9F2))
+                                                else listOf(Color(0xFF075B48), Color(0xFF239B78), Color(0xFFBCE8D8))
+                                            )
+                                        )
+                                ) {
+                                    Text(
+                                        if (isEmployerProfile) "কাজদাতা পরিচিতি" else "আমার কর্মী প্রোফাইল",
+                                        modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(16.dp),
+                                        color = Color.White, fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleLarge
                                     )
                                 }
-                                Text("নাম: ${profile?.fullName?.ifBlank { "নাম যোগ করা হয়নি" }}")
-                                Text("মোবাইল: ${profile?.contactPhone?.ifBlank { profile?.authPhone?.ifBlank { "যোগ করা হয়নি" } ?: "যোগ করা হয়নি" }}")
-                                if (profile?.role == "employer") {
-                                    Text("কাজদাতার ব্যবসা / প্রতিষ্ঠান", fontWeight = FontWeight.Bold, color = Blue)
-                                    Text("প্রতিষ্ঠান: ${profile?.organizationName?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("ধরন: ${profile?.organizationType?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("যোগাযোগকারী: ${profile?.contactPerson?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("প্রতিষ্ঠান পরিচিতি: ${profile?.organizationDetails?.ifBlank { "যোগ করা হয়নি" }}")
-                                } else if (profile?.role == "worker") {
-                                    Text("কর্মীর দক্ষতা প্রোফাইল", fontWeight = FontWeight.Bold, color = Blue)
-                                    Text("কাজের ধরন: ${profile?.workType?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("অভিজ্ঞতা: ${profile?.experience?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("কাজের সময়: ${profile?.availability?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("প্রত্যাশিত মজুরি: ${profile?.expectedWage?.ifBlank { "আলোচনা সাপেক্ষ" }}")
-                                    Text("কাজের নমুনা / পোর্টফোলিও: ${profile?.portfolio?.ifBlank { "যোগ করা হয়নি" }}")
-                                    Text("দক্ষতা: ${profile?.skills?.ifBlank { "যোগ করা হয়নি" }}")
-                                }
-                                OutlinedButton(onClick = {
-                                    profileFullName = profile?.fullName.orEmpty()
-                                    profileDistrict = profile?.district.orEmpty()
-                                    profileUpazila = profile?.upazila.orEmpty()
-                                    profileContactPhone = profile?.contactPhone?.ifBlank { profile?.authPhone.orEmpty() }.orEmpty()
-                                    profileCurrentAddress = profile?.currentAddress.orEmpty()
-                                    profilePermanentAddress = profile?.permanentAddress.orEmpty()
-                                    profileWorkType = profile?.workType.orEmpty()
-                                    profileSkills = profile?.skills.orEmpty()
-                                    profileAvatarUrl = profile?.avatarUrl.orEmpty()
-                                    profileOrganizationName = profile?.organizationName.orEmpty()
-                                    profileOrganizationType = profile?.organizationType.orEmpty()
-                                    profileOrganizationDetails = profile?.organizationDetails.orEmpty()
-                                    profileContactPerson = profile?.contactPerson.orEmpty()
-                                    profileExperience = profile?.experience.orEmpty()
-                                    profileAvailability = profile?.availability.orEmpty()
-                                    profileExpectedWage = profile?.expectedWage.orEmpty()
-                                    profilePortfolio = profile?.portfolio.orEmpty()
-                                    showProfileForm = true
-                                }, modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল সম্পাদনা করুন") }
-                                Text("অ্যাকাউন্ট: ${when (profile?.role) { "employer" -> "কাজদাতা / নিয়োগদাতা"; "admin" -> "অ্যাডমিন"; else -> "কর্মী / কাজপ্রার্থী" }}")
-                                Text("এলাকা: ${listOfNotNull(profile?.district, profile?.upazila).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "যোগ করা হয়নি" }}")
-                                if (profile?.role == "worker") {
-                                    Button(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) { Text("কাজদাতা হতে আবেদন করুন") }
-                                    OutlinedButton(onClick = {
-                                        val token = accessToken
-                                        if (token != null) {
-                                            showMyApplicationsDialog = true
-                                            busy = true
-                                            scope.launch {
-                                                val result = MarketplaceRepository.getWorkerApplications(token)
-                                                busy = false
-                                                myApplications = result.getOrNull().orEmpty()
-                                                if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "আবেদন পাওয়া যায়নি।"
+                                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Box(
+                                            modifier = Modifier.padding(top = 0.dp).size(94.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFE7EEF7)),
+                                            contentAlignment = androidx.compose.ui.Alignment.Center
+                                        ) {
+                                            if (currentProfile.avatarUrl.isNotBlank()) {
+                                                AsyncImage(model = currentProfile.avatarUrl, contentDescription = "প্রোফাইল ছবি",
+                                                    modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                                            } else {
+                                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(52.dp), tint = Blue)
                                             }
                                         }
-                                    }, modifier = Modifier.fillMaxWidth()) { Text("আমার আবেদনগুলো দেখুন") }
-                                }
-                                if (profile?.role == "employer") {
-                                    Button(onClick = { showJobForm = true }, modifier = Modifier.fillMaxWidth()) { Text("নতুন কাজ পোস্ট করুন") }
-                                    OutlinedButton(onClick = {
-                                        val token = accessToken
-                                        val id = userId
-                                        if (token != null && id != null) {
-                                            selectedEmployerJob = null
-                                            employerApplications = emptyList()
-                                            showApplicationsDialog = true
-                                            busy = true
-                                            scope.launch {
-                                                val result = MarketplaceRepository.getEmployerJobs(token, id)
-                                                busy = false
-                                                employerJobs = result.getOrNull().orEmpty()
-                                                if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "কাজের তালিকা পাওয়া যায়নি।"
-                                            }
+                                        Column(Modifier.weight(1f).padding(bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                            Text(roleLabel, color = Blue, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                         }
-                                    }, modifier = Modifier.fillMaxWidth()) { Text("কাজের আবেদনগুলো দেখুন") }
+                                    }
+                                    Text("📍 $areaLabel", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        AssistChip(onClick = {}, label = { Text("কাজের বাজার সদস্য") }, leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) })
+                                        AssistChip(onClick = {}, label = { Text(if (isEmployerProfile) "নিয়োগদাতা" else "কর্মী") })
+                                    }
+                                    Button(onClick = {
+                                        profileFullName = currentProfile.fullName
+                                        profileDistrict = currentProfile.district
+                                        profileUpazila = currentProfile.upazila
+                                        profileContactPhone = currentProfile.contactPhone.ifBlank { currentProfile.authPhone }
+                                        profileCurrentAddress = currentProfile.currentAddress
+                                        profilePermanentAddress = currentProfile.permanentAddress
+                                        profileWorkType = currentProfile.workType
+                                        profileSkills = currentProfile.skills
+                                        profileAvatarUrl = currentProfile.avatarUrl
+                                        profileOrganizationName = currentProfile.organizationName
+                                        profileOrganizationType = currentProfile.organizationType
+                                        profileOrganizationDetails = currentProfile.organizationDetails
+                                        profileContactPerson = currentProfile.contactPerson
+                                        profileExperience = currentProfile.experience
+                                        profileAvailability = currentProfile.availability
+                                        profileExpectedWage = currentProfile.expectedWage
+                                        profilePortfolio = currentProfile.portfolio
+                                        showProfileForm = true
+                                    }, modifier = Modifier.fillMaxWidth()) {
+                                        Icon(Icons.Default.Person, contentDescription = null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("প্রোফাইল সম্পাদনা করুন")
+                                    }
+                                    HorizontalDivider()
+                                    Text(if (isEmployerProfile) "প্রতিষ্ঠান সম্পর্কে" else "আমার পরিচিতি", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    if (isEmployerProfile) {
+                                        ProfileInfoRow("প্রতিষ্ঠান", currentProfile.organizationName)
+                                        ProfileInfoRow("প্রতিষ্ঠানের ধরন", currentProfile.organizationType)
+                                        ProfileInfoRow("যোগাযোগকারী", currentProfile.contactPerson)
+                                        ProfileInfoRow("প্রতিষ্ঠান পরিচিতি", currentProfile.organizationDetails)
+                                    } else if (currentProfile.role == "worker") {
+                                        ProfileInfoRow("কাজের ধরন", currentProfile.workType)
+                                        ProfileInfoRow("দক্ষতা", currentProfile.skills)
+                                        ProfileInfoRow("অভিজ্ঞতা", currentProfile.experience)
+                                        ProfileInfoRow("কাজের সময়", currentProfile.availability)
+                                        ProfileInfoRow("প্রত্যাশিত মজুরি", currentProfile.expectedWage.ifBlank { "আলোচনা সাপেক্ষ" })
+                                        ProfileInfoRow("কাজের নমুনা", currentProfile.portfolio)
+                                    }
+                                    ProfileInfoRow("মোবাইল", currentProfile.contactPhone.ifBlank { currentProfile.authPhone })
+                                    ProfileInfoRow("বর্তমান ঠিকানা", currentProfile.currentAddress)
+                                    ProfileInfoRow("স্থায়ী ঠিকানা", currentProfile.permanentAddress)
+                                    Spacer(Modifier.height(6.dp))
+                                    if (currentProfile.role == "worker") {
+                                        OutlinedButton(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) {
+                                            Text("কাজদাতা হতে আবেদন করুন")
+                                        }
+                                        OutlinedButton(onClick = {
+                                            val token = accessToken
+                                            if (token != null) {
+                                                showMyApplicationsDialog = true
+                                                busy = true
+                                                scope.launch {
+                                                    val result = MarketplaceRepository.getWorkerApplications(token)
+                                                    busy = false
+                                                    myApplications = result.getOrNull().orEmpty()
+                                                    if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "আবেদন পাওয়া যায়নি।"
+                                                }
+                                            }
+                                        }, modifier = Modifier.fillMaxWidth()) { Text("আমার আবেদনগুলো দেখুন") }
+                                    }
+                                    if (isEmployerProfile) {
+                                        Button(onClick = { showJobForm = true }, modifier = Modifier.fillMaxWidth()) { Text("নতুন কাজ পোস্ট করুন") }
+                                        OutlinedButton(onClick = {
+                                            val token = accessToken
+                                            val id = userId
+                                            if (token != null && id != null) {
+                                                selectedEmployerJob = null
+                                                employerApplications = emptyList()
+                                                showApplicationsDialog = true
+                                                busy = true
+                                                scope.launch {
+                                                    val result = MarketplaceRepository.getEmployerJobs(token, id)
+                                                    busy = false
+                                                    employerJobs = result.getOrNull().orEmpty()
+                                                    if (result.isFailure) jobMessage = result.exceptionOrNull()?.message ?: "কাজের তালিকা পাওয়া যায়নি।"
+                                                }
+                                            }
+                                        }, modifier = Modifier.fillMaxWidth()) { Text("কাজের আবেদনগুলো দেখুন") }
+                                    }
+                                    Spacer(Modifier.height(8.dp))
                                 }
                             }
                         }
                     }
                 }
-                if (selectedPage == "profile" && profile != null) item { MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true }) }
+                if (selectedPage == "profile" && profile != null) item {
+                    MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
                 if (selectedPage == "profile" && profile == null) item {
                     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("আপনার প্রোফাইল", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
