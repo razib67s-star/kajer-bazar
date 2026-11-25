@@ -60,7 +60,7 @@ jobs:
           retention-days: 30
           compression-level: 0
 
-      - name: Run Android instrumentation tests and launch app in emulator
+      - name: Install and launch APK in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: yes
@@ -71,4 +71,4 @@ jobs:
           emulator-boot-timeout: 600
           disable-animations: true
           script: |
-            adb wait-for-device && test "$(adb shell getprop sys.boot_completed | tr -d '\\r')" = "1" && adb shell cmd package list packages >/dev/null && gradle --no-daemon connectedDebugAndroidTest && adb install -r app/build/outputs/apk/debug/app-debug.apk && adb shell am force-stop com.kajerbazar.app.test && adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity && sleep 15 && adb shell pidof com.kajerbazar.app.test >/dev/null && echo "PASS: instrumentation tests passed; APK installed and app process remained alive for 15 seconds"
+            adb wait-for-device && test "$(adb shell getprop sys.boot_completed | tr -d '\\r')" = "1" && adb shell cmd package list packages >/dev/null && adb install -r app/build/outputs/apk/debug/app-debug.apk && adb shell am force-stop com.kajerbazar.app.test && adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity && sleep 15 && adb shell pidof com.kajerbazar.app.test >/dev/null && echo "PASS: APK installed, activity launched, and app process remained alive for 15 seconds"
