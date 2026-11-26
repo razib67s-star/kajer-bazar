@@ -93,12 +93,12 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     LaunchedEffect(token, userId) { refresh() }
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("কমিউনিটি ওয়াল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("নিউজ ফিড", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("আপনার পোস্ট", fontWeight = FontWeight.Bold)
+                Text("নতুন পোস্ট", fontWeight = FontWeight.Bold)
                 OutlinedTextField(caption, { caption = it.take(500) }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("আপনার কথা লিখুন…") }, minLines = 2)
+                    label = { Text("আপনার মনে কী আছে? লিখুন…") }, minLines = 2)
                 Button(
                     onClick = {
                         val auth = token
@@ -150,7 +150,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         Text("এটি ব্যক্তিগত ভিডিও কল রুমের লিংক (Jitsi Meet)—পাবলিক লাইভ সম্প্রচার নয়। কল করতে লগইন লাগবে; অপর পক্ষকে একই লিংক পাঠান।",
             style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("সাম্প্রতিক পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("সবার সাম্প্রতিক পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             TextButton(onClick = { refresh() }) { Text("রিফ্রেশ") }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())

@@ -2,7 +2,7 @@ name: Build Kajer Bazar APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/facebook-profile-newsfeed" ]
   workflow_dispatch:
 
 permissions:

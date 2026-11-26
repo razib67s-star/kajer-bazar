@@ -11,7 +11,8 @@ import java.net.URLEncoder
 object MessageRepository {
     data class Person(
         val id: String, val name: String, val role: String,
-        val district: String, val upazila: String, val avatarUrl: String
+        val district: String, val upazila: String, val avatarUrl: String, val coverUrl: String,
+        val workType: String, val skills: String, val experience: String, val availability: String, val expectedWage: String
     )
     data class Message(
         val id: String, val senderId: String, val receiverId: String,
@@ -42,13 +43,15 @@ object MessageRepository {
 
     suspend fun directory(token: String, currentUserId: String): Result<List<Person>> = withContext(Dispatchers.IO) {
         runCatching {
-            val (code, body) = request("/rest/v1/messaging_directory?select=id,full_name,role,district,upazila,avatar_url&order=full_name.asc&limit=500", token)
+            val (code, body) = request("/rest/v1/messaging_directory?select=id,full_name,role,district,upazila,avatar_url,cover_url,work_type,skills,experience,availability,expected_wage&order=full_name.asc&limit=500", token)
             if (code !in 200..299) error("ব্যবহারকারীর তালিকা পাওয়া যায়নি ($code): $body")
             val rows = JSONArray(body)
             (0 until rows.length()).map { i ->
                 val r = rows.getJSONObject(i)
                 Person(r.getString("id"), r.optString("full_name", "ব্যবহারকারী"), r.optString("role"),
-                    r.optString("district"), r.optString("upazila"), r.optString("avatar_url"))
+                    r.optString("district"), r.optString("upazila"), r.optString("avatar_url"), r.optString("cover_url"),
+                    r.optString("work_type"), r.optString("skills"), r.optString("experience"),
+                    r.optString("availability"), r.optString("expected_wage"))
             }.filter { it.id != currentUserId }
         }
     }
