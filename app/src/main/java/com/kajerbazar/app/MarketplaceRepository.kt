@@ -477,4 +477,46 @@ object MarketplaceRepository {
         }
     }
 
+
+    data class CommunityNotification(val id: String, val title: String, val body: String, val kind: String, val createdAt: String, val readAt: String?)
+    suspend fun getCommunityNotifications(token: String, userId: String): Result<List<CommunityNotification>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val path = "/rest/v1/notifications?select=id,title,body,kind,created_at,read_at&recipient_id=eq.${URLEncoder.encode(userId, "UTF-8")}&order=created_at.desc&limit=50"
+            val (status, body) = request(path, token)
+            if (status !in 200..299) error("নোটিফিকেশন পাওয়া যায়নি ($status): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i -> rows.getJSONObject(i).let { CommunityNotification(it.optString("id"), it.optString("title"), it.optString("body"), it.optString("kind"), it.optString("created_at"), it.optString("read_at").takeIf { v -> v.isNotBlank() && v != "null" }) } }
+        }
+    }
+    suspend fun followUser(token: String, followerId: String, followingId: String, follow: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val path = "/rest/v1/user_follows?follower_id=eq.${URLEncoder.encode(followerId, "UTF-8")}&following_id=eq.${URLEncoder.encode(followingId, "UTF-8")}"
+            val (status, body) = if (follow) request("/rest/v1/user_follows", token, "POST", JSONObject().put("follower_id", followerId).put("following_id", followingId)) else request(path, token, "DELETE")
+            if (status !in 200..299) error("ফলো আপডেট হয়নি ($status): $body")
+        }
+    }
+    suspend fun createJobAlert(token: String, userId: String, category: String, district: String, upazila: String, keyword: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = JSONObject().put("user_id", userId).put("active", true)
+            if (category.isNotBlank()) body.put("category", category)
+            if (district.isNotBlank()) body.put("district", district)
+            if (upazila.isNotBlank()) body.put("upazila", upazila)
+            if (keyword.isNotBlank()) body.put("keyword", keyword)
+            val (status, response) = request("/rest/v1/job_alerts", token, "POST", body)
+            if (status !in 200..299) error("জব অ্যালার্ট সংরক্ষণ হয়নি ($status): $response")
+        }
+    }
+    suspend fun submitVerification(token: String, userId: String, details: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/worker_verification_requests", token, "POST", JSONObject().put("worker_id", userId).put("details", details))
+            if (status !in 200..299) error("ভেরিফিকেশন আবেদন জমা হয়নি ($status): $body")
+        }
+    }
+    suspend fun submitContentReport(token: String, reporterId: String, targetType: String, targetId: String, reason: String, details: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val (status, body) = request("/rest/v1/content_reports", token, "POST", JSONObject().put("reporter_id", reporterId).put("target_type", targetType).put("target_id", targetId).put("reason", reason).put("details", details))
+            if (status !in 200..299) error("রিপোর্ট জমা হয়নি ($status): $body")
+        }
+    }
+
 }
