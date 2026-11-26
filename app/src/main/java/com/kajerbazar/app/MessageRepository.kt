@@ -53,6 +53,17 @@ object MessageRepository {
         }
     }
 
+
+    suspend fun getFollowingIds(token: String, userId: String): Result<Set<String>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val uid = URLEncoder.encode(userId, "UTF-8")
+            val (code, body) = request("/rest/v1/user_follows?select=following_id&follower_id=eq.$uid&order=created_at.desc&limit=500", token)
+            if (code !in 200..299) error("আপনার ফলো তালিকা পাওয়া যায়নি ($code): $body")
+            val rows = JSONArray(body)
+            (0 until rows.length()).map { i -> rows.getJSONObject(i).getString("following_id") }.toSet()
+        }
+    }
+
     suspend fun allMessages(token: String, userId: String): Result<List<Message>> = withContext(Dispatchers.IO) {
         runCatching {
             val uid = URLEncoder.encode(userId, "UTF-8")
