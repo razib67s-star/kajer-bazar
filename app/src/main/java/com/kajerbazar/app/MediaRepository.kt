@@ -165,7 +165,7 @@ object MediaRepository {
         withContext(Dispatchers.IO) {
             runCatching {
                 val (status, body) = request(
-                    "/rest/v1/user_stories?select=id,user_id,body,created_at,expires_at&expires_at=gt.now()&order=created_at.desc&limit=100",
+                    "/rest/v1/user_stories?select=id,user_id,body,created_at,expires_at&order=created_at.desc&limit=100",
                     token
                 )
                 if (status !in 200..299) error("স্টোরি লোড হয়নি ($status): $body")
