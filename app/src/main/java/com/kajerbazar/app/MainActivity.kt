@@ -515,10 +515,10 @@ fun KajerBazarApp() {
                 }
                 if (selectedPage == "publicProfile" && viewedProfileId != null) item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ব্যবহারকারীর প্রোফাইল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Text("← নিউজ ফিডে ফিরে যান")
                         }
+                        PublicProfileHeader(token = accessToken, userId = userId, profileUserId = viewedProfileId)
                         MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true },
                             profileUserId = viewedProfileId,
                             onOpenProfile = { viewedProfileId = it })
