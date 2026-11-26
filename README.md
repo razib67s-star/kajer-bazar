@@ -54,3 +54,10 @@ GitHub Actions-এর **Build Kajer Bazar APK** workflow debug APK তৈরি 
 - Production চালুর আগে security, legal, privacy, moderation ও payment review আবশ্যক।
 
 বিস্তারিত: [BACKEND_SETUP_BN.md](BACKEND_SETUP_BN.md), [PAYMENTS_SETUP_BN.md](PAYMENTS_SETUP_BN.md), [ROADMAP_BN.md](ROADMAP_BN.md)।
+
+
+## Social / Marketplace expansion — database foundation
+- Added migration `202611260002_social_marketplace_trust_ads.sql` on `feature/from-run-238`.
+- Schema foundation includes follow graph, post likes/comments/shares, product listings and buyer order requests, verification applications, completed-job reviews, push-token registry, in-app notification inbox and moderated ad campaigns.
+- This is a database migration only: it must be applied to the Supabase project before the new tables can be used.
+- Android screens/repository integration, FCM delivery, order/payment settlement, admin approval tooling, ad billing/serving and end-to-end tests are still required. No live payments or live ad campaigns are enabled by this migration.
