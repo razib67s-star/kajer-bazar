@@ -231,7 +231,7 @@ fun KajerBazarApp() {
     var jobWage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    var selectedPage by remember { mutableStateOf("home") }
+    var selectedPage by remember { mutableStateOf("social") }
     var viewedProfileId by remember { mutableStateOf<String?>(null) }
     val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -286,7 +286,7 @@ fun KajerBazarApp() {
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Home, contentDescription = null) },
                         label = { Text("হোম") }, selected = true,
-                        onClick = { scope.launch { drawerState.close(); mainListState.animateScrollToItem(0) } },
+                        onClick = { scope.launch { drawerState.close(); selectedPage = "social"; mainListState.animateScrollToItem(0) } },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
                     NavigationDrawerItem(
@@ -435,7 +435,7 @@ fun KajerBazarApp() {
             },
             bottomBar = {
                 NavigationBar {
-                    NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
+                    NavigationBarItem(selected = selectedPage == "social", onClick = { selectedPage = "social"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("ফিড") })
                     NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ খুঁজুন") })
                     NavigationBarItem(selected = selectedPage == "workers", onClick = { selectedPage = "workers"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("কর্মী") })
                     NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("মেসেজ") })
@@ -449,6 +449,16 @@ fun KajerBazarApp() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (selectedPage == "social") item {
+                    SocialHomeScreen(
+                        displayName = profile?.fullName?.takeIf { it.isNotBlank() } ?: "অতিথি",
+                        onOpen = { destination ->
+                            if (destination == "settings") showAppSettings = true
+                            else selectedPage = destination
+                            scope.launch { mainListState.animateScrollToItem(0) }
+                        }
+                    )
+                }
                 if (selectedPage == "workers") item {
                     WorkerDirectoryScreen(token = accessToken, userId = userId, isEmployer = profile?.role == "employer", onLogin = { showLogin = true })
                 }
