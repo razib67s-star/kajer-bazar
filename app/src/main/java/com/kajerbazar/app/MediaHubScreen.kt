@@ -136,7 +136,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("ব্যবহারকারী • " + story.userId.take(8), style = MaterialTheme.typography.labelMedium,
+                                Text("স্টোরি", style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold)
                                 Text(story.body, style = MaterialTheme.typography.bodyLarge)
                                 Text("২৪ ঘণ্টার মধ্যে মুছে যাবে", style = MaterialTheme.typography.labelSmall,
