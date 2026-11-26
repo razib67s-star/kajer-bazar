@@ -148,4 +148,35 @@ object MediaRepository {
                 if (status !in 200..299) error("মন্তব্য প্রকাশ হয়নি ($status): $response")
             }
         }
+    data class Story(val id: String, val userId: String, val body: String, val createdAt: String, val expiresAt: String)
+
+    suspend fun publishStory(token: String, userId: String, body: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val clean = body.trim()
+                require(clean.isNotEmpty() && clean.length <= 500) { "স্টোরি ১ থেকে ৫০০ অক্ষরের মধ্যে লিখুন।" }
+                val payload = JSONObject().put("user_id", userId).put("body", clean)
+                val (status, response) = request("/rest/v1/user_stories", token, "POST", payload)
+                if (status !in 200..299) error("স্টোরি প্রকাশ হয়নি ($status): $response")
+            }
+        }
+
+    suspend fun activeStories(token: String? = null): Result<List<Story>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val (status, body) = request(
+                    "/rest/v1/user_stories?select=id,user_id,body,created_at,expires_at&expires_at=gt.now()&order=created_at.desc&limit=100",
+                    token
+                )
+                if (status !in 200..299) error("স্টোরি লোড হয়নি ($status): $body")
+                val rows = JSONArray(body)
+                (0 until rows.length()).map { i ->
+                    rows.getJSONObject(i).let { row ->
+                        Story(row.getString("id"), row.getString("user_id"), row.getString("body"),
+                            row.optString("created_at"), row.optString("expires_at"))
+                    }
+                }
+            }
+        }
+
 }
