@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
 fun KajerBazarApp() {
     val appContext = LocalContext.current.applicationContext
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
-    var showLogin by remember { mutableStateOf(false) }
+    var showLogin by remember { mutableStateOf(true) }
     var showAppSettings by remember { mutableStateOf(false) }
     var appAnnouncement by remember { mutableStateOf("") }
     var supportPhone by remember { mutableStateOf("") }
@@ -161,6 +161,7 @@ fun KajerBazarApp() {
                 signedInAccount = accountLabel
                 accessToken = renewedToken
                 userId = renewedUserId
+                showLogin = false
                 withContext(Dispatchers.IO) {
                     SessionStore.save(appContext, SessionStore.SavedSession(renewedRefresh, renewedUserId, accountLabel))
                 }
@@ -272,6 +273,21 @@ fun KajerBazarApp() {
     }
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
+        if (accessToken.isNullOrBlank() || userId.isNullOrBlank()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(28.dp),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text("কাজের বাজার", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Blue)
+                    Text("অ্যাপ ব্যবহার করতে আগে লগইন করুন অথবা নতুন অ্যাকাউন্ট খুলুন।", style = MaterialTheme.typography.bodyLarge)
+                    Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("লগইন / অ্যাকাউন্ট খুলুন")
+                    }
+                }
+            }
+        } else {
         ModalNavigationDrawer(
             drawerState = drawerState,
             gesturesEnabled = true,
@@ -982,10 +998,11 @@ fun KajerBazarApp() {
             }
         }
         }
+        }
 
         if (showLogin) {
             AlertDialog(
-                onDismissRequest = { if (!busy) showLogin = false },
+                onDismissRequest = { if (!busy && !accessToken.isNullOrBlank() && !userId.isNullOrBlank()) showLogin = false },
                 title = { Text(if (signedInAccount != null) "লগইন হয়েছে" else if (isSignUp) "নতুন অ্যাকাউন্ট খুলুন" else "লগইন করুন") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1029,7 +1046,7 @@ fun KajerBazarApp() {
                                 if (!currentToken.isNullOrBlank()) AuthRepository.signOut(currentToken)
                                 withContext(Dispatchers.IO) { SessionStore.clear(appContext) }
                             }
-                            jobMessage = "প্রকাশিত কাজ দেখতে লগইন প্রয়োজন নেই।"; showLogin = false
+                            jobMessage = "লগআউট হয়েছে। আবার প্রবেশ করতে লগইন করুন।"; showLogin = true
                         }) { Text("লগআউট") }
                     } else {
                         TextButton(enabled = !busy, onClick = {
