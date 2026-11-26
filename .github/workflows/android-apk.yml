@@ -2,7 +2,7 @@ name: Build Kajer Bazar APK
 
 on:
   push:
-    branches: [ "main", "feature/facebook-style-social-shell" ]
+    branches: [ "main", "feature/facebook-style-social-shell", "feature/from-run-238" ]
   workflow_dispatch:
 
 permissions:
