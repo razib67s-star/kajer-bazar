@@ -33,6 +33,8 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var caption by remember { mutableStateOf("") }
+    var storyText by remember { mutableStateOf("") }
+    var stories by remember { mutableStateOf<List<MediaRepository.Story>>(emptyList()) }
     var status by remember { mutableStateOf("ছবি বা ভিডিও শেয়ার করুন।") }
     var busy by remember { mutableStateOf(false) }
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
@@ -43,6 +45,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
             busy = true
             val result = MediaRepository.feed(token, userId)
             posts = result.getOrNull().orEmpty()
+            stories = MediaRepository.activeStories(token).getOrNull().orEmpty()
             status = if (result.isSuccess) "সর্বশেষ পোস্টগুলো" else (result.exceptionOrNull()?.message ?: "ফিড লোড হয়নি।")
             busy = false
         }
@@ -94,6 +97,56 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("কমিউনিটি ওয়াল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("স্টোরি • ২৪ ঘণ্টা", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                OutlinedTextField(
+                    value = storyText,
+                    onValueChange = { storyText = it.take(500) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("আজকের স্টোরি লিখুন…") },
+                    minLines = 2
+                )
+                Button(
+                    onClick = {
+                        val auth = token
+                        val uid = userId
+                        if (auth == null || uid == null) onLogin() else scope.launch {
+                            busy = true
+                            val result = MediaRepository.publishStory(auth, uid, storyText)
+                            busy = false
+                            if (result.isSuccess) {
+                                storyText = ""
+                                status = "আপনার ২৪ ঘণ্টার স্টোরি প্রকাশ হয়েছে।"
+                                refresh()
+                            } else status = result.exceptionOrNull()?.message ?: "স্টোরি প্রকাশ হয়নি।"
+                        }
+                    },
+                    enabled = !busy && storyText.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("＋ স্টোরি প্রকাশ করুন") }
+                if (stories.isEmpty()) {
+                    Text("এখনো কোনো সক্রিয় স্টোরি নেই।", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("সাম্প্রতিক স্টোরি", fontWeight = FontWeight.SemiBold)
+                    stories.forEach { story ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("ব্যবহারকারী • " + story.userId.take(8), style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold)
+                                Text(story.body, style = MaterialTheme.typography.bodyLarge)
+                                Text("২৪ ঘণ্টার মধ্যে মুছে যাবে", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("আপনার পোস্ট", fontWeight = FontWeight.Bold)
