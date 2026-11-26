@@ -40,6 +40,13 @@ GitHub Actions-এর **Build Kajer Bazar APK** workflow debug APK তৈরি 
 - লাইভ ভিডিও কল আপাতত Jitsi Meet-এর আলাদা রুম ব্রাউজারে খোলে; এটি অ্যাপের ভিতরে বিল্ট-ইন WebRTC নয় এবং অপর পক্ষকে একই রুম লিংক পাঠাতে হয়।
 - নতুন media screen-এর Android build ও বাস্তব ডিভাইস পরীক্ষা CI-তে যাচাই করতে হবে।
 
+## Restart from workflow run #238
+- Baseline is commit `3224e66207e1ee2d44b089c37645c95e4284a98c`, from workflow run #238.
+- Follow-up work is isolated on branch `feature/from-run-238`; do not rewrite the original branch.
+- First priority: reproduce and diagnose the reported email/password login behavior that unexpectedly opens Downloads. Source review so far did not find an explicit Downloads intent in the login handler; the exact trigger still needs device-side reproduction.
+- Add the requested social feed, profile, jobs/services, marketplace, camera/video, messaging, notifications and safety improvements in tested stages.
+- No claim of a fixed login issue or new APK until a focused test confirms it.
+
 ## Security
 - Play Protect বা Android security feature বন্ধ করে install করবেন না।
 - Publishable key ছাড়া কোনো secret Android app-এ রাখবেন না।
