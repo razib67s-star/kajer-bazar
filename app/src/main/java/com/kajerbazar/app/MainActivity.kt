@@ -390,6 +390,12 @@ fun KajerBazarApp() {
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
                     NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        label = { Text("মানুষ খুঁজুন") }, selected = selectedPage == "people",
+                        onClick = { scope.launch { drawerState.close() }; selectedPage = "people"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
                         icon = { Icon(Icons.Default.ListAlt, contentDescription = null) },
                         label = { Text("কমিউনিটি ফিচার") }, selected = selectedPage == "community",
                         onClick = { scope.launch { drawerState.close() }; selectedPage = "community"; scope.launch { mainListState.animateScrollToItem(0) } },
@@ -457,6 +463,14 @@ fun KajerBazarApp() {
                 }
                 if (selectedPage == "community") item {
                     CommunityFeaturesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
+                if (selectedPage == "people") item {
+                    PeopleDirectoryScreen(
+                        token = accessToken,
+                        userId = userId,
+                        onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } }
+                    )
                 }
                 if (selectedPage == "messages") item {
                     MessagesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
