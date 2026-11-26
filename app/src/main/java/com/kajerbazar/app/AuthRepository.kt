@@ -42,8 +42,16 @@ object AuthRepository {
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-            return status to JSONObject(text.ifBlank { "{}" })
+            val responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            // Gateways and proxy layers can return HTML/plain text for HTTP errors.
+            // Preserve the HTTP status and surface a readable message instead of
+            // turning a valid server response into a misleading connection failure.
+            val responseJson = try {
+                JSONObject(responseText.ifBlank { "{}" })
+            } catch (_: org.json.JSONException) {
+                JSONObject().put("message", responseText.take(500).ifBlank { "সার্ভার খালি উত্তর দিয়েছে।" })
+            }
+            return status to responseJson
         } finally { connection.disconnect() }
     }
 
@@ -167,7 +175,17 @@ object AuthRepository {
                     else -> "লগইন করা যায়নি। $msg"
                 })
             }
-        } catch (_: Exception) { AuthResult(false, "লগইন সার্ভারে সংযোগ করা যায়নি।") }
+        } catch (e: java.net.SocketTimeoutException) {
+            AuthResult(false, "লগইন সার্ভারের উত্তর পেতে দেরি হচ্ছে। ইন্টারনেট ঠিক আছে কি না দেখে আবার চেষ্টা করুন।")
+        } catch (e: java.net.UnknownHostException) {
+            AuthResult(false, "লগইন সার্ভারের ঠিকানা পাওয়া যাচ্ছে না। ইন্টারনেট বা DNS সংযোগ পরীক্ষা করুন।")
+        } catch (e: javax.net.ssl.SSLException) {
+            AuthResult(false, "লগইন সার্ভারের নিরাপদ সংযোগে সমস্যা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।")
+        } catch (e: java.io.IOException) {
+            AuthResult(false, "লগইন সার্ভারে নেটওয়ার্ক সংযোগ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।")
+        } catch (_: Exception) {
+            AuthResult(false, "লগইন প্রক্রিয়ায় অপ্রত্যাশিত সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+        }
     }
 
 
