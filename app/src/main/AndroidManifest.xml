@@ -3,7 +3,7 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="কাজের বাজার"
+        android:label="Kajer Bazar"
         android:icon="@drawable/ic_kajer_bazar"
         android:roundIcon="@drawable/ic_kajer_bazar"
         android:supportsRtl="true"
