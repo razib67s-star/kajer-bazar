@@ -423,16 +423,22 @@ fun KajerBazarApp() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Column {
-                        Text("কাজের বাজার", fontWeight = FontWeight.Bold)
-                        Text("কাজ খুঁজুন, কাজ দিন", style = MaterialTheme.typography.labelSmall)
-                    } },
+                    title = {
+                        Text("কাজের বাজার", fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.titleLarge)
+                    },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "মেনু খুলুন", tint = Color.White)
                         }
                     },
                     actions = {
+                        IconButton(onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Icon(Icons.Default.Search, contentDescription = "কাজ খুঁজুন", tint = Color.White)
+                        }
+                        IconButton(onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Icon(Icons.Default.ChatBubbleOutline, contentDescription = "মেসেজ", tint = Color.White)
+                        }
                         TextButton(onClick = { showLogin = true }) {
                             Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
                         }
@@ -441,13 +447,60 @@ fun KajerBazarApp() {
                 )
             },
             bottomBar = {
-                NavigationBar {
-                    NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
-                    NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ খুঁজুন") })
-                    NavigationBarItem(selected = selectedPage == "workers", onClick = { selectedPage = "workers"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("কর্মী") })
-                    NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("মেসেজ") })
-                    NavigationBarItem(selected = selectedPage == "media", onClick = { selectedPage = "media"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("ভিডিও") })
-                    NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
+                NavigationBar(
+                    containerColor = Color.White,
+                    contentColor = Blue,
+                    tonalElevation = 8.dp,
+                    windowInsets = NavigationBarDefaults.windowInsets
+                ) {
+                    NavigationBarItem(
+                        selected = selectedPage == "home",
+                        onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        icon = { Icon(Icons.Default.Home, contentDescription = "হোম") },
+                        label = { Text("হোম") },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = Blue, selectedTextColor = Blue,
+                            indicatorColor = Color(0xFFE7F0FF), unselectedIconColor = Color(0xFF667085))
+                    )
+                    NavigationBarItem(
+                        selected = selectedPage == "jobs",
+                        onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        icon = { Icon(Icons.Default.Work, contentDescription = "কাজ") },
+                        label = { Text("কাজ") },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = Blue, selectedTextColor = Blue,
+                            indicatorColor = Color(0xFFE7F0FF), unselectedIconColor = Color(0xFF667085))
+                    )
+                    NavigationBarItem(
+                        selected = selectedPage == "workers" || selectedPage == "people",
+                        onClick = { selectedPage = "workers"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        icon = { Icon(Icons.Default.Person, contentDescription = "মানুষ") },
+                        label = { Text("মানুষ") },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = Blue, selectedTextColor = Blue,
+                            indicatorColor = Color(0xFFE7F0FF), unselectedIconColor = Color(0xFF667085))
+                    )
+                    NavigationBarItem(
+                        selected = selectedPage == "messages",
+                        onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        icon = { Icon(Icons.Default.Email, contentDescription = "মেসেজ") },
+                        label = { Text("মেসেজ") },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = Blue, selectedTextColor = Blue,
+                            indicatorColor = Color(0xFFE7F0FF), unselectedIconColor = Color(0xFF667085))
+                    )
+                    NavigationBarItem(
+                        selected = selectedPage == "media",
+                        onClick = { selectedPage = "media"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = "ভিডিও") },
+                        label = { Text("ভিডিও") },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = Blue, selectedTextColor = Blue,
+                            indicatorColor = Color(0xFFE7F0FF), unselectedIconColor = Color(0xFF667085))
+                    )
+                    NavigationBarItem(
+                        selected = selectedPage == "profile",
+                        onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        icon = { Icon(Icons.Default.Person, contentDescription = "প্রোফাইল") },
+                        label = { Text("প্রোফাইল") },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = Blue, selectedTextColor = Blue,
+                            indicatorColor = Color(0xFFE7F0FF), unselectedIconColor = Color(0xFF667085))
+                    )
                 }
             }
         ) { padding ->
