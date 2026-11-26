@@ -518,7 +518,7 @@ fun KajerBazarApp() {
                         OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Text("← নিউজ ফিডে ফিরে যান")
                         }
-                        PublicProfileHeader(token = accessToken, userId = userId, profileUserId = viewedProfileId)
+                        PublicProfileHeader(token = accessToken, userId = userId, profileUserId = viewedProfileId.orEmpty())
                         MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true },
                             profileUserId = viewedProfileId,
                             onOpenProfile = { viewedProfileId = it })
