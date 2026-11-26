@@ -203,6 +203,9 @@ fun KajerBazarApp() {
     var profileWorkType by remember { mutableStateOf("") }
     var profileSkills by remember { mutableStateOf("") }
     var profileAvatarUrl by remember { mutableStateOf("") }
+    var profileCoverUrl by remember { mutableStateOf("") }
+    var followerCount by remember { mutableStateOf(0L) }
+    var followingCount by remember { mutableStateOf(0L) }
     var profileOrganizationName by remember { mutableStateOf("") }
     var profileOrganizationType by remember { mutableStateOf("") }
     var profileOrganizationDetails by remember { mutableStateOf("") }
@@ -270,6 +273,36 @@ fun KajerBazarApp() {
                 }
             }
         }
+    }
+
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val token = accessToken; val id = userId
+            if (token == null || id == null) jobMessage = "কভার ছবি আপলোড করতে আবার লগইন করুন।"
+            else {
+                busy = true
+                scope.launch {
+                    val mime = appContext.contentResolver.getType(uri).orEmpty()
+                    val extension = when (mime.lowercase()) { "image/png" -> "png"; "image/webp" -> "webp"; "image/jpeg", "image/jpg" -> "jpg"; else -> "" }
+                    val result = runCatching {
+                        require(extension.isNotBlank()) { "শুধু JPG, PNG অথবা WebP ছবি নির্বাচন করুন।" }
+                        val bytes = withContext(Dispatchers.IO) { appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("কভার ছবিটি পড়া যায়নি।") }
+                        require(bytes.isNotEmpty() && bytes.size <= 5 * 1024 * 1024) { "কভার ছবির আকার ৫ MB-এর মধ্যে হতে হবে।" }
+                        val url = MarketplaceRepository.uploadCover(token, id, bytes, mime, extension)
+                        MarketplaceRepository.updateMyCover(token, url).getOrThrow()
+                        url
+                    }
+                    busy = false
+                    if (result.isSuccess) { profileCoverUrl = result.getOrThrow(); profile = profile?.copy(coverUrl = profileCoverUrl); jobMessage = "কভার ছবি সংরক্ষণ হয়েছে।" }
+                    else jobMessage = result.exceptionOrNull()?.message ?: "কভার ছবি আপলোড হয়নি।"
+                }
+            }
+        }
+    }
+    LaunchedEffect(accessToken, userId) {
+        val token = accessToken; val id = userId
+        if (token != null && id != null) MarketplaceRepository.getFollowCounts(token, id).getOrNull()?.let { followerCount = it.first; followingCount = it.second }
+        else { followerCount = 0L; followingCount = 0L }
     }
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
@@ -442,7 +475,7 @@ fun KajerBazarApp() {
             },
             bottomBar = {
                 NavigationBar {
-                    NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
+                    NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("নিউজ ফিড") })
                     NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ খুঁজুন") })
                     NavigationBarItem(selected = selectedPage == "workers", onClick = { selectedPage = "workers"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("কর্মী") })
                     NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("মেসেজ") })
@@ -674,7 +707,7 @@ fun KajerBazarApp() {
                         ) {
                             Column {
                                 Box(
-                                    modifier = Modifier.fillMaxWidth().height(156.dp)
+                                    modifier = Modifier.fillMaxWidth().height(190.dp)
                                         .background(
                                             brush = androidx.compose.ui.graphics.Brush.linearGradient(
                                                 colors = if (isEmployerProfile) listOf(Color(0xFF123B70), Color(0xFF3B82B8), Color(0xFFB8D9F2))
@@ -682,12 +715,13 @@ fun KajerBazarApp() {
                                             )
                                         )
                                 ) {
-                                    Text(
-                                        if (isEmployerProfile) "কাজদাতা পরিচিতি" else "আমার কর্মী প্রোফাইল",
+                                    if (currentProfile.coverUrl.isNotBlank()) {
+                                        AsyncImage(model = currentProfile.coverUrl, contentDescription = "কভার ছবি", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.28f)))
+                                    }
+                                    Text(if (isEmployerProfile) "কাজদাতা পরিচিতি" else "আমার কর্মী প্রোফাইল",
                                         modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(16.dp),
-                                        color = Color.White, fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleLarge
-                                    )
+                                        color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                                 }
                                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -710,10 +744,15 @@ fun KajerBazarApp() {
                                         }
                                     }
                                     Text("📍 $areaLabel", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                                        Column { Text("$followerCount", fontWeight = FontWeight.Bold); Text("ফলোয়ার", style = MaterialTheme.typography.labelSmall) }
+                                        Column { Text("$followingCount", fontWeight = FontWeight.Bold); Text("ফলো করছেন", style = MaterialTheme.typography.labelSmall) }
+                                    }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         AssistChip(onClick = {}, label = { Text("কাজের বাজার সদস্য") }, leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) })
                                         AssistChip(onClick = {}, label = { Text(if (isEmployerProfile) "নিয়োগদাতা" else "কর্মী") })
                                     }
+                                    OutlinedButton(onClick = { coverPicker.launch("image/*") }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("🖼 কভার ছবি যোগ / পরিবর্তন করুন") }
                                     Button(onClick = {
                                         profileFullName = currentProfile.fullName
                                         profileDistrict = currentProfile.district
@@ -724,6 +763,7 @@ fun KajerBazarApp() {
                                         profileWorkType = currentProfile.workType
                                         profileSkills = currentProfile.skills
                                         profileAvatarUrl = currentProfile.avatarUrl
+                                        profileCoverUrl = currentProfile.coverUrl
                                         profileOrganizationName = currentProfile.organizationName
                                         profileOrganizationType = currentProfile.organizationType
                                         profileOrganizationDetails = currentProfile.organizationDetails
@@ -811,6 +851,10 @@ fun KajerBazarApp() {
                     } }
                 }
                 if (selectedPage == "home" || selectedPage == "jobs") {
+                if (selectedPage == "home") item {
+                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
+                }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(if (selectedPage == "home") "সাম্প্রতিক কাজ" else "প্রকাশিত কাজ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1128,6 +1172,8 @@ fun KajerBazarApp() {
                                 contentScale = ContentScale.Crop
                             )
                         }
+                        if (profileCoverUrl.isNotBlank()) AsyncImage(model = profileCoverUrl, contentDescription = "কভার ছবির প্রিভিউ", modifier = Modifier.fillMaxWidth().height(110.dp), contentScale = ContentScale.Crop)
+                        OutlinedButton(onClick = { coverPicker.launch("image/*") }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("কভার ছবি যোগ / পরিবর্তন করুন") }
                         OutlinedButton(onClick = { avatarPicker.launch("image/*") }, enabled = !busy,
                             modifier = Modifier.fillMaxWidth()) { Text("প্রোফাইল ছবি যোগ / পরিবর্তন করুন") }
                         OutlinedTextField(profileFullName, { profileFullName = it.take(100) }, enabled = !busy,
