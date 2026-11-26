@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
 fun KajerBazarApp() {
     val appContext = LocalContext.current.applicationContext
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
-    var showLogin by remember { mutableStateOf(false) }
+    var showLogin by remember { mutableStateOf(true) }
     var showAppSettings by remember { mutableStateOf(false) }
     var appAnnouncement by remember { mutableStateOf("") }
     var supportPhone by remember { mutableStateOf("") }
@@ -166,6 +166,7 @@ fun KajerBazarApp() {
                 }
                 val profileResult = MarketplaceRepository.getProfile(renewedToken, renewedUserId)
                 profile = profileResult.getOrNull()
+                showLogin = false
                 val jobResult = MarketplaceRepository.getPublishedJobs(renewedToken)
                 jobs = jobResult.getOrNull().orEmpty()
                 if (profile?.role == "admin") {
@@ -989,7 +990,7 @@ fun KajerBazarApp() {
 
         if (showLogin) {
             AlertDialog(
-                onDismissRequest = { if (!busy) showLogin = false },
+                onDismissRequest = { if (!busy && signedInAccount != null) showLogin = false },
                 title = { Text(if (signedInAccount != null) "লগইন হয়েছে" else if (isSignUp) "নতুন অ্যাকাউন্ট খুলুন" else "লগইন করুন") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1033,7 +1034,7 @@ fun KajerBazarApp() {
                                 if (!currentToken.isNullOrBlank()) AuthRepository.signOut(currentToken)
                                 withContext(Dispatchers.IO) { SessionStore.clear(appContext) }
                             }
-                            jobMessage = "প্রকাশিত কাজ দেখতে লগইন প্রয়োজন নেই।"; showLogin = false
+                            jobMessage = "লগইন ছাড়া অ্যাপে প্রবেশ করা যাবে না।"; showLogin = true
                         }) { Text("লগআউট") }
                     } else {
                         TextButton(enabled = !busy, onClick = {
