@@ -389,6 +389,12 @@ fun KajerBazarApp() {
                         onClick = { scope.launch { drawerState.close() }; selectedPage = "support"; scope.launch { mainListState.animateScrollToItem(0) } },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.ListAlt, contentDescription = null) },
+                        label = { Text("কমিউনিটি ফিচার") }, selected = selectedPage == "community",
+                        onClick = { scope.launch { drawerState.close() }; selectedPage = "community"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = null) },
@@ -448,6 +454,9 @@ fun KajerBazarApp() {
                 }
                 if (selectedPage == "support") item {
                     SupportCenterScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
+                if (selectedPage == "community") item {
+                    CommunityFeaturesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
                 }
                 if (selectedPage == "messages") item {
                     MessagesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
