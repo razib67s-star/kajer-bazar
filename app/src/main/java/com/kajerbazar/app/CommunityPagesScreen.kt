@@ -14,7 +14,8 @@ fun CommunityPagesScreen(token:String?,userId:String?,onLogin:()->Unit) {
     val scope=rememberCoroutineScope()
     var pages by remember { mutableStateOf<List<CommunityPagesRepository.Page>>(emptyList()) }
     var selected by remember { mutableStateOf<CommunityPagesRepository.Page?>(null) }
-    var posts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }\n    var feedPosts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }
+    var posts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }
+    var feedPosts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("পেজ লোড হচ্ছে…") }
     var showCreate by remember { mutableStateOf(false) }
