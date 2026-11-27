@@ -737,6 +737,14 @@ fun KajerBazarApp() {
                                         AssistChip(onClick = {}, label = { Text("কাজের বাজার সদস্য") }, leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) })
                                         AssistChip(onClick = {}, label = { Text(if (isEmployerProfile) "নিয়োগদাতা" else "কর্মী") })
                                     }
+                                    if (currentProfile.role == "worker" && userId != null) {
+                                        ProfileFollowCard(
+                                            token = accessToken,
+                                            viewerId = userId,
+                                            profileId = userId,
+                                            onLogin = { showLogin = true }
+                                        )
+                                    }
                                     Button(onClick = {
                                         profileFullName = currentProfile.fullName
                                         profileDistrict = currentProfile.district
@@ -779,6 +787,15 @@ fun KajerBazarApp() {
                                     ProfileInfoRow("মোবাইল", currentProfile.contactPhone.ifBlank { currentProfile.authPhone })
                                     ProfileInfoRow("বর্তমান ঠিকানা", currentProfile.currentAddress)
                                     ProfileInfoRow("স্থায়ী ঠিকানা", currentProfile.permanentAddress)
+                                    if (currentProfile.role == "worker") {
+                                        MediaPostsSection(
+                                            token = accessToken,
+                                            userId = userId,
+                                            onLogin = { showLogin = true },
+                                            profileUserId = userId,
+                                            onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile" }
+                                        )
+                                    }
                                     Spacer(Modifier.height(6.dp))
                                     if (currentProfile.role == "worker") {
                                         OutlinedButton(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) {
