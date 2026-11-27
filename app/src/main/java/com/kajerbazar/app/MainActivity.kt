@@ -483,6 +483,7 @@ fun KajerBazarApp() {
                 if (selectedPage == "publicProfile" && viewedProfileId != null) item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("ব্যবহারকারীর প্রোফাইল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        ProfileFollowCard(token = accessToken, viewerId = userId, profileId = viewedProfileId, onLogin = { showLogin = true })
                         OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Text("← নিউজ ফিডে ফিরে যান")
                         }
@@ -594,8 +595,8 @@ fun KajerBazarApp() {
                     }
                 }
                 item {
-                    Text("সবার কাজ ও পোস্ট", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("সব ব্যবহারকারীর প্রকাশিত কাজ, ছবি, ভিডিও ও লেখা এখানে দেখুন।", style = MaterialTheme.typography.bodyMedium)
+                    Text("নিউজ ফিড", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("মানুষের পোস্ট, ছবি, ভিডিও, লেখা, লাইক, মন্তব্য ও শেয়ার দেখুন।", style = MaterialTheme.typography.bodyMedium)
                 }
                 item {
                     MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
