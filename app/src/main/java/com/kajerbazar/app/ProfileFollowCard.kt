@@ -6,7 +6,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun ProfileFollowCard(token: String?, viewerId: String?, profileId: String?, onLogin: () -> Unit) {
@@ -67,7 +66,7 @@ private object SocialFollowRepository {
             return code to (stream?.bufferedReader()?.use { it.readText() }.orEmpty())
         } finally { conn.disconnect() }
     }
-    suspend fun stats(profileId: String): Pair<Int, Int> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+    suspend fun stats(profileId: String): Pair<Int, Int> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         runCatching {
             val enc = java.net.URLEncoder.encode(profileId, "UTF-8")
             val (a, followersBody) = request("/rest/v1/profile_follows?select=follower_id&followed_id=eq.$enc")
@@ -76,14 +75,14 @@ private object SocialFollowRepository {
             org.json.JSONArray(followersBody).length() to org.json.JSONArray(followingBody).length()
         }.getOrDefault(0 to 0)
     }
-    suspend fun isFollowing(token: String, viewerId: String, profileId: String): Boolean = kotlinx.coroutines.withContext(kotlin.coroutines.Dispatchers.IO) {
+    suspend fun isFollowing(token: String, viewerId: String, profileId: String): Boolean = kotlinx.coroutines.withContext(kotlin.coroutines.kotlinx.coroutines.Dispatchers.IO) {
         val f = java.net.URLEncoder.encode(viewerId, "UTF-8")
         val p = java.net.URLEncoder.encode(profileId, "UTF-8")
         val (code, body) = request("/rest/v1/profile_follows?select=follower_id&follower_id=eq.$f&followed_id=eq.$p", token)
         code in 200..299 && org.json.JSONArray(body).length() > 0
     }
     suspend fun setFollowing(token: String, viewerId: String, profileId: String, follow: Boolean): Result<Unit> =
-        kotlinx.coroutines.withContext(kotlin.coroutines.Dispatchers.IO) {
+        kotlinx.coroutines.withContext(kotlin.coroutines.kotlinx.coroutines.Dispatchers.IO) {
             runCatching {
                 require(viewerId != profileId) { "নিজেকে ফলো করা যাবে না" }
                 val f = java.net.URLEncoder.encode(viewerId, "UTF-8")
