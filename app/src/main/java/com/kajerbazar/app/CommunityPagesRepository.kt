@@ -11,7 +11,7 @@ import java.net.URLEncoder\nimport java.util.UUID
 object CommunityPagesRepository {
     data class Page(val id:String, val ownerId:String, val name:String, val slug:String, val category:String,
         val description:String, val avatarUrl:String, val coverUrl:String, val followerCount:Int, val followedByMe:Boolean)
-    data class PagePost(val id:String, val pageId:String, val body:String, val createdAt:String)
+    data class PagePost(val id:String, val pageId:String, val pageName:String, val body:String, val createdAt:String)
 
     private fun enc(s:String)=URLEncoder.encode(s,"UTF-8")
     private fun request(path:String, token:String?, method:String="GET", body:JSONObject?=null, prefer:String="return=minimal"):Pair<Int,String> {
@@ -57,10 +57,15 @@ object CommunityPagesRepository {
         if(code !in 200..299) error(if(follow)"ফলো করা যায়নি ($code): $body" else "আনফলো করা যায়নি ($code): $body")
     } }
 
-    suspend fun posts(token:String?,pageId:String):Result<List<PagePost>> = withContext(Dispatchers.IO) { runCatching {
+    suspend fun posts(token:String?,pageId:String,pageName:String=""):Result<List<PagePost>> = withContext(Dispatchers.IO) { runCatching {
         val (code,body)=request("/rest/v1/community_page_posts?select=id,page_id,body,created_at&page_id=eq.${enc(pageId)}&order=created_at.desc&limit=100",token)
         if(code !in 200..299) error("পেজ পোস্ট লোড হয়নি ($code): $body")
-        val rows=JSONArray(body); (0 until rows.length()).map{val r=rows.getJSONObject(it);PagePost(r.optString("id"),r.optString("page_id"),r.optString("body"),r.optString("created_at"))}
+        val rows=JSONArray(body); (0 until rows.length()).map{val r=rows.getJSONObject(it);PagePost(r.optString("id"),r.optString("page_id"),pageName,r.optString("body"),r.optString("created_at"))}
+    } }
+
+    suspend fun latestPageFeed(token:String?, pages:List<Page>):Result<List<PagePost>> = withContext(Dispatchers.IO) { runCatching {
+        pages.take(20).flatMap { page -> posts(token,page.id,page.name).getOrElse { emptyList() } }
+            .sortedByDescending { it.createdAt }.take(50)
     } }
 
     suspend fun publish(token:String,ownerId:String,pageId:String,body:String):Result<Unit> = withContext(Dispatchers.IO) { runCatching {
