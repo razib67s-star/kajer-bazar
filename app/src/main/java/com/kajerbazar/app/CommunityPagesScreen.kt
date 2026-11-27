@@ -88,6 +88,7 @@ fun CommunityPagesScreen(token:String?,userId:String?,onLogin:()->Unit) {
                                 CommunityPagesRepository.follow(t,u,page.id,!page.followedByMe).onSuccess { status=if(page.followedByMe)"আনফলো করা হয়েছে" else "পেজ ফলো করেছেন";loadPages() }.onFailure{status=it.message ?: "ফলো আপডেট ব্যর্থ"}
                                 loading=false
                             },enabled=!loading) { Text(if(page.followedByMe)"ফলো করা আছে" else "ফলো") }
+                        }
                     }
                 }
             }
