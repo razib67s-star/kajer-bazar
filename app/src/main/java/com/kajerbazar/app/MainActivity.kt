@@ -427,31 +427,40 @@ fun KajerBazarApp() {
             }
         ) {
         Scaffold(
+            containerColor = Color(0xFFF3F6FA),
             topBar = {
                 TopAppBar(
-                    title = { Column {
-                        Text("কাজের বাজার", fontWeight = FontWeight.Bold)
-                        Text("কাজ খুঁজুন, কাজ দিন", style = MaterialTheme.typography.labelSmall)
-                    } },
+                    title = {
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Text("কাজের বাজার", fontWeight = FontWeight.ExtraBold, color = Blue)
+                            Text("মানুষ • কাজ • কমিউনিটি", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "মেনু খুলুন", tint = Color.White)
+                            Icon(Icons.Default.Menu, contentDescription = "মেনু খুলুন", tint = Blue)
                         }
                     },
                     actions = {
+                        IconButton(onClick = { selectedPage = "people"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Icon(Icons.Default.Search, contentDescription = "মানুষ খুঁজুন", tint = Blue)
+                        }
+                        IconButton(onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Icon(Icons.Default.Email, contentDescription = "মেসেজ", tint = Blue)
+                        }
                         TextButton(onClick = { showLogin = true }) {
-                            Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Color.White)
+                            Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Blue)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Blue, titleContentColor = Color.White)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White, titleContentColor = Blue)
                 )
             },
             bottomBar = {
-                NavigationBar {
+                NavigationBar(containerColor = Color.White, tonalElevation = 6.dp) {
                     NavigationBarItem(selected = selectedPage == "home", onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Home, contentDescription = null) }, label = { Text("হোম") })
-                    NavigationBarItem(selected = selectedPage == "jobs", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("কাজ খুঁজুন") })
-                    NavigationBarItem(selected = selectedPage == "workers", onClick = { selectedPage = "workers"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("কর্মী") })
-                    NavigationBarItem(selected = selectedPage == "messages", onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("মেসেজ") })
+                    NavigationBarItem(selected = selectedPage == "people", onClick = { selectedPage = "people"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("বন্ধু") })
+                    NavigationBarItem(selected = selectedPage == "jobs" || selectedPage == "workers", onClick = { selectedPage = "jobs"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Work, contentDescription = null) }, label = { Text("বাজার") })
                     NavigationBarItem(selected = selectedPage == "media", onClick = { selectedPage = "media"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) }, label = { Text("ভিডিও") })
                     NavigationBarItem(selected = selectedPage == "profile", onClick = { selectedPage = "profile"; scope.launch { mainListState.animateScrollToItem(0) } }, icon = { Icon(Icons.Default.Person, contentDescription = null) }, label = { Text("প্রোফাইল") })
                 }
@@ -459,7 +468,7 @@ fun KajerBazarApp() {
         ) { padding ->
             LazyColumn(
                 state = mainListState,
-                modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+                modifier = Modifier.fillMaxSize().background(Color(0xFFF3F6FA)).padding(padding).padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (selectedPage == "workers") item {
