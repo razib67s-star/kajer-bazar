@@ -402,6 +402,12 @@ fun KajerBazarApp() {
                         onClick = { scope.launch { drawerState.close() }; selectedPage = "community"; scope.launch { mainListState.animateScrollToItem(0) } },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.ListAlt, contentDescription = null) },
+                        label = { Text("পেজ") }, selected = selectedPage == "pages",
+                        onClick = { scope.launch { drawerState.close() }; selectedPage = "pages"; scope.launch { mainListState.animateScrollToItem(0) } },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = null) },
@@ -464,6 +470,9 @@ fun KajerBazarApp() {
                 }
                 if (selectedPage == "community") item {
                     CommunityFeaturesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                }
+                if (selectedPage == "pages") item {
+                    CommunityPagesScreen(token = accessToken, userId = userId, onLogin = { showLogin = true })
                 }
                 if (selectedPage == "people") item {
                     PeopleDirectoryScreen(
