@@ -597,6 +597,14 @@ fun KajerBazarApp() {
                     }
                 }
                 item {
+                    Text("নিউজ ফিড", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("মানুষের পোস্ট, ছবি, ভিডিও, লেখা, লাইক, মন্তব্য ও শেয়ার দেখুন।", style = MaterialTheme.typography.bodyMedium)
+                }
+                item {
+                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
+                }
+                item {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))) {
                         Column(Modifier.padding(14.dp)) {
                             Text("নিরাপদ পরীক্ষামূলক সংস্করণ", fontWeight = FontWeight.Bold, color = Color(0xFF8A4B08))
@@ -611,14 +619,6 @@ fun KajerBazarApp() {
                     Button(onClick = { showLogin = true }, modifier = Modifier.fillMaxWidth()) {
                         Text(if (signedInAccount == null) "ইমেইল বা মোবাইল দিয়ে শুরু করুন" else "অ্যাকাউন্ট দেখুন")
                     }
-                }
-                item {
-                    Text("নিউজ ফিড", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("মানুষের পোস্ট, ছবি, ভিডিও, লেখা, লাইক, মন্তব্য ও শেয়ার দেখুন।", style = MaterialTheme.typography.bodyMedium)
-                }
-                item {
-                    MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
-                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
                 }
                 item {
                     Card(
