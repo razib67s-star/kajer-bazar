@@ -37,7 +37,7 @@ object CommunityPagesRepository {
         } else emptySet()
         (0 until rows.length()).map { i ->
             val row=rows.getJSONObject(i); val id=row.getString("id")
-            val (cc,cb)=request("/rest/v1/community_page_followers?select=page_id& page_id=eq.${enc(id)}",token)
+            val (cc,cb)=request("/rest/v1/community_page_followers?select=page_id&page_id=eq.${enc(id)}",token)
             val count=if(cc in 200..299) JSONArray(cb).length() else 0
             Page(id,row.optString("owner_id"),row.optString("name"),row.optString("slug"),row.optString("category"),row.optString("description"),row.optString("avatar_url"),row.optString("cover_url"),count,id in following)
         }
