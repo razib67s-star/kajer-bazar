@@ -6,7 +6,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder\nimport java.util.UUID
+import java.net.URLEncoder
+import java.util.UUID
 
 object CommunityPagesRepository {
     data class Page(val id:String, val ownerId:String, val name:String, val slug:String, val category:String,
