@@ -14,7 +14,7 @@ fun CommunityPagesScreen(token:String?,userId:String?,onLogin:()->Unit) {
     val scope=rememberCoroutineScope()
     var pages by remember { mutableStateOf<List<CommunityPagesRepository.Page>>(emptyList()) }
     var selected by remember { mutableStateOf<CommunityPagesRepository.Page?>(null) }
-    var posts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }
+    var posts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }\n    var feedPosts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("পেজ লোড হচ্ছে…") }
     var showCreate by remember { mutableStateOf(false) }
@@ -35,7 +35,7 @@ fun CommunityPagesScreen(token:String?,userId:String?,onLogin:()->Unit) {
     }
     fun loadPosts(page:CommunityPagesRepository.Page?) {
         if(page==null){posts=emptyList();return}
-        scope.launch { CommunityPagesRepository.posts(token,page.id).onSuccess{posts=it}.onFailure{status=it.message ?: "পোস্ট লোড হয়নি"} }
+        scope.launch { CommunityPagesRepository.posts(token,page.id,page.name).onSuccess{posts=it}.onFailure{status=it.message ?: "পোস্ট লোড হয়নি"} }
     }
     LaunchedEffect(token,userId) { loadPages() }
     LaunchedEffect(selected?.id) { loadPosts(selected) }
@@ -69,6 +69,17 @@ fun CommunityPagesScreen(token:String?,userId:String?,onLogin:()->Unit) {
                         },enabled=!loading&&pageName.trim().length>=2) { Text("তৈরি করুন") }
                         OutlinedButton(onClick={showCreate=false}) { Text("বাতিল") }
                     }
+                }
+            }
+        }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Text("পেজ নিউজ ফিড",style=MaterialTheme.typography.titleLarge)
+                if(feedPosts.isEmpty()) Text("পেজের পোস্ট প্রকাশ হলে এখানে দেখা যাবে।")
+                feedPosts.forEach { item ->
+                    Text(item.pageName,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary)
+                    Text(item.body)
+                    HorizontalDivider()
                 }
             }
         }
