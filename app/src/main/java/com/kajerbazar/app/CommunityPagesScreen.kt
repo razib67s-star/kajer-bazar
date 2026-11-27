@@ -30,6 +30,7 @@ fun CommunityPagesScreen(token:String?,userId:String?,onLogin:()->Unit) {
             CommunityPagesRepository.pages(token,userId).onSuccess { list ->
                 pages=list; status=if(list.isEmpty()) "এখনো কোনো পেজ নেই। নতুন পেজ তৈরি করুন।" else "পেজের তালিকা"
                 selected=list.firstOrNull { it.id==selected?.id } ?: selected ?: list.firstOrNull()
+                CommunityPagesRepository.latestPageFeed(token,list).onSuccess { feedPosts=it }.onFailure { status=it.message ?: "পেজ নিউজ ফিড লোড হয়নি" }
             }.onFailure { status=it.message ?: "পেজ লোড হয়নি।" }
             loading=false
         }
