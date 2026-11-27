@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun ProfileFollowCard(token: String?, viewerId: String?, profileId: String?, onLogin: () -> Unit) {
@@ -66,7 +67,7 @@ private object SocialFollowRepository {
             return code to (stream?.bufferedReader()?.use { it.readText() }.orEmpty())
         } finally { conn.disconnect() }
     }
-    suspend fun stats(profileId: String): Pair<Int, Int> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    suspend fun stats(profileId: String): Pair<Int, Int> = kotlinx.coroutines.withContext(Dispatchers.IO) {
         runCatching {
             val enc = java.net.URLEncoder.encode(profileId, "UTF-8")
             val (a, followersBody) = request("/rest/v1/profile_follows?select=follower_id&followed_id=eq.$enc")
