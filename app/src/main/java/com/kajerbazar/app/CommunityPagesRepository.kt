@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
+import java.net.URLEncoder\nimport java.util.UUID
 
 object CommunityPagesRepository {
     data class Page(val id:String, val ownerId:String, val name:String, val slug:String, val category:String,
@@ -45,7 +45,7 @@ object CommunityPagesRepository {
 
     suspend fun createPage(token:String, ownerId:String, name:String, category:String, description:String):Result<Unit> = withContext(Dispatchers.IO) { runCatching {
         val clean=name.trim(); require(clean.length in 2..80) { "পেজের নাম ২ থেকে ৮০ অক্ষর লিখুন।" }
-        val slug=clean.lowercase().replace(Regex("[^a-z0-9\\u0980-\\u09ff]+"),"-").trim('-').take(90).ifBlank{"page"}+"-"+ownerId.take(6)
+        val slug=clean.lowercase().replace(Regex("[^a-z0-9\\u0980-\\u09ff]+"),"-").trim('-').take(90).ifBlank{"page"}+"-"+UUID.randomUUID().toString().take(8)
         val json=JSONObject().put("owner_id",ownerId).put("name",clean).put("slug",slug).put("category",category.trim().ifBlank{"সাধারণ"}).put("description",description.trim().take(1000))
         val (code,body)=request("/rest/v1/community_pages",token,"POST",json)
         if(code !in 200..299) error("পেজ তৈরি হয়নি ($code): $body")
