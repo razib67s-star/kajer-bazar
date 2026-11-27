@@ -660,6 +660,10 @@ fun KajerBazarApp() {
                             OutlinedButton(onClick = { selectedPage = "activity" }, modifier = Modifier.weight(1f)) { Text("📋 আমার কার্যক্রম") }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { selectedPage = "pages" }, modifier = Modifier.weight(1f)) { Text("📄 পেজ ও নিউজ ফিড") }
+                            Spacer(Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(onClick = { selectedPage = "profile"; if (profile == null) showLogin = true }, modifier = Modifier.weight(1f)) { Text("👤 প্রোফাইল") }
                             OutlinedButton(onClick = { selectedPage = "support" }, modifier = Modifier.weight(1f)) { Text("🛟 সহায়তা") }
                         }
