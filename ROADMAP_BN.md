@@ -187,3 +187,19 @@ Draft → Pending moderation → Published → Applications → Worker selected 
 ### ভবিষ্যৎ পেমেন্ট
 - পেমেন্ট পেজ/অর্ডার/লেনদেনের অবস্থা ভবিষ্যতের ধাপ হিসেবে থাকবে।
 - বর্তমান MVP-তে কোনো live payment বা আসল টাকা গ্রহণ চালু নয়। Merchant approval, provider configuration, আইনগত যাচাই, refund/dispute policy এবং নিরাপত্তা পরীক্ষা সম্পন্ন হওয়ার পরই sandbox; তার পর আলাদা অনুমোদনে live payment।
+
+
+## স্বয়ংক্রিয় পর্যালোচনা — ২৭ নভেম্বর ২০২৬
+
+### এই পর্যালোচনায় যাচাই করা হয়েছে
+- Supabase project status: ACTIVE_HEALTHY; migration তালিকা ও Security/Performance/Health advisors পুনরায় পরীক্ষা করা হয়েছে।
+- Performance: আগের ৭টি অনুপস্থিত foreign-key index সতর্কতা সমাধান হয়েছে; saved_workers-এর worker_id index এখন অনুপস্থিত হিসেবে দেখায়নি।
+- Security: SECURITY DEFINER function সতর্কতা এবং leaked-password protection সতর্কতা follow-up হিসেবে রয়েছে; function authorization body পরীক্ষা ছাড়া permission পরিবর্তন করা হয়নি।
+- Android physical-device, SMS OTP, Push delivery, live payment, release signing ও বাস্তব বহু-ব্যবহারকারীর flow পরীক্ষা CI/backend access থেকে নিশ্চিত করা যায় না; এগুলো blocker/acceptance step হিসেবে থাকবে।
+
+### পরবর্তী নিরাপদ অগ্রাধিকার
+1. Admin dashboard/account deletion flow-এর source ও test coverage পর্যালোচনা; account deletion-এর আগে data-retention ও recovery policy নিশ্চিত করা।
+2. Notifications এবং overdue-completion scheduler-এর implementation/CI coverage পর্যালোচনা; বাস্তব delivery বা scheduled execution না হলে সেভাবে চিহ্নিত করা।
+3. Media upload/feed, private messaging, saved workers, support tickets-এর RLS ও Android flow test coverage যাচাই।
+4. Auth/session instrumentation, OTP provider configuration, leaked-password protection এবং remaining security warnings triage।
+5. Android CI-র সর্বশেষ run ও artifact যাচাই; সফল artifact-কে debug/test build হিসেবেই চিহ্নিত করা।
