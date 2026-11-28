@@ -46,7 +46,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           BADGING="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK")"
           echo "$BADGING" | head -n 8
-          echo "$BADGING" | grep -q "package: name='com.kajerbazar.app.test'"
+          echo "$BADGING" | grep -q "package: name='com.kajerbazar.app'"
           echo "$BADGING" | grep -q "launchable-activity:"
 
       - name: Verify instrumentation tests and launch APK on Android emulator
@@ -60,11 +60,11 @@ jobs:
           script: |
             gradle --no-daemon connectedDebugAndroidTest
             adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am force-stop com.kajerbazar.app.test || true
-            adb shell am start -W -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity
+            adb shell am force-stop com.kajerbazar.app || true
+            adb shell am start -W -n com.kajerbazar.app/com.kajerbazar.app.MainActivity
             sleep 8
-            adb shell pidof com.kajerbazar.app.test
-            adb shell dumpsys activity activities | grep -E 'ResumedActivity|topResumedActivity' | grep 'com.kajerbazar.app.test'
+            adb shell pidof com.kajerbazar.app
+            adb shell dumpsys activity activities | grep -E 'ResumedActivity|topResumedActivity' | grep 'com.kajerbazar.app'
 
       - name: Prepare clearly named APK
         run: |
