@@ -249,15 +249,20 @@ fun KajerBazarApp() {
         appContext.getSharedPreferences("kajer_bazar_preferences", android.content.Context.MODE_PRIVATE)
             .edit().putString("app_language", appLanguage).apply()
     }
+    val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    var viewedProfileId by remember { mutableStateOf<String?>(null) }
     BackHandler(enabled = true) {
         when {
             showLanguageDialog -> showLanguageDialog = false
+            showDeleteAccountConfirm -> showDeleteAccountConfirm = false
+            showAdminEditDialog -> { showAdminEditDialog = false; showAdminUsersDialog = true }
+            showAdminUsersDialog -> showAdminUsersDialog = false
             showAppSettings -> showAppSettings = false
             showProfileForm -> showProfileForm = false
             showJobForm -> showJobForm = false
             showEmployerForm -> showEmployerForm = false
             showMyApplicationsDialog -> showMyApplicationsDialog = false
-            showApplicationsDialog -> showApplicationsDialog = false
+            showApplicationsDialog -> { showApplicationsDialog = false; selectedEmployerJob = null; employerApplications = emptyList() }
             drawerState.isOpen -> scope.launch { drawerState.close() }
             selectedPage != "home" -> {
                 selectedPage = "home"
@@ -266,8 +271,6 @@ fun KajerBazarApp() {
             showLogin && signedInAccount != null -> showLogin = false
         }
     }
-    var viewedProfileId by remember { mutableStateOf<String?>(null) }
-    val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             val token = accessToken
