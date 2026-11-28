@@ -158,6 +158,29 @@ object AuthRepository {
         }
     }
 
+    suspend fun resendEmailOtp(emailInput: String): AuthResult = withContext(Dispatchers.IO) {
+        val email = emailInput.trim().lowercase()
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
+        }
+        try {
+            val body = JSONObject().put("type", "signup").put("email", email)
+            val (status, json) = request("/auth/v1/resend", body)
+            if (status in 200..299) {
+                AuthResult(true, "নতুন ৬ সংখ্যার OTP পাঠানো হয়েছে। ইনবক্স ও Spam ফোল্ডার দেখুন।", email = email)
+            } else {
+                val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
+                AuthResult(false, when (status) {
+                    429 -> "খুব দ্রুত OTP চাওয়া হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।"
+                    400, 422 -> "OTP আবার পাঠানো যায়নি। ইমেইল যাচাইয়ের সেটিংস দেখুন। $msg"
+                    else -> "OTP আবার পাঠানো যায়নি ($status)। $msg"
+                })
+            }
+        } catch (_: Exception) {
+            AuthResult(false, "OTP আবার পাঠাতে সার্ভারে সংযোগ করা যায়নি।")
+        }
+    }
+
     suspend fun signInEmail(emailInput: String, password: String): AuthResult = withContext(Dispatchers.IO) {
         val email = emailInput.trim().lowercase()
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
