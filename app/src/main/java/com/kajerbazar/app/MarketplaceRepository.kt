@@ -522,6 +522,26 @@ object MarketplaceRepository {
             (0 until rows.length()).map { i -> rows.getJSONObject(i).let { CommunityNotification(it.optString("id"), it.optString("title"), it.optString("body"), it.optString("kind"), it.optString("created_at"), it.optString("read_at").takeIf { v -> v.isNotBlank() && v != "null" }) } }
         }
     }
+    suspend fun markNotificationRead(token: String, userId: String, notificationId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val path = "/rest/v1/notifications?id=eq.${URLEncoder.encode(notificationId, "UTF-8")}&recipient_id=eq.${URLEncoder.encode(userId, "UTF-8")}"
+            val readAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(java.util.Date())
+            val (status, body) = request(path, token, "PATCH", JSONObject().put("read_at", readAt))
+            if (status !in 200..299) error("নোটিফিকেশন পঠিত করা যায়নি ($status): $body")
+        }
+    }
+
+    suspend fun markAllNotificationsRead(token: String, userId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val path = "/rest/v1/notifications?recipient_id=eq.${URLEncoder.encode(userId, "UTF-8")}&read_at=is.null"
+            val readAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(java.util.Date())
+            val (status, body) = request(path, token, "PATCH", JSONObject().put("read_at", readAt))
+            if (status !in 200..299) error("সব নোটিফিকেশন পঠিত করা যায়নি ($status): $body")
+        }
+    }
+
     suspend fun followUser(token: String, followerId: String, followingId: String, follow: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val path = "/rest/v1/user_follows?follower_id=eq.${URLEncoder.encode(followerId, "UTF-8")}&following_id=eq.${URLEncoder.encode(followingId, "UTF-8")}"
