@@ -624,8 +624,11 @@ fun KajerBazarApp() {
                             Triple("ভিডিও", Color(0xFFEDE9FE), "media")
                         )
                         tiles.forEach { tile ->
-                            Card(Modifier.width(126.dp).height(104.dp), colors = CardDefaults.cardColors(containerColor = tile.second),
-                                onClick = { selectedPage = tile.third; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Card(
+                                onClick = { selectedPage = tile.third; scope.launch { mainListState.animateScrollToItem(0) } },
+                                modifier = Modifier.width(126.dp).height(104.dp),
+                                colors = CardDefaults.cardColors(containerColor = tile.second)
+                            ) {
                                 Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
                                     Text(when(tile.third) { "jobs" -> "💼"; "people" -> "👥"; "community" -> "🌐"; else -> "🎬" }, style = MaterialTheme.typography.headlineSmall)
                                     Text(tile.first, fontWeight = FontWeight.Bold)
