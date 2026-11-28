@@ -36,6 +36,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     var status by remember { mutableStateOf("সর্বশেষ আপডেট দেখুন") }
     var busy by remember { mutableStateOf(false) }
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
+    var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
     var liveRoomUrl by remember { mutableStateOf<String?>(null) }
     var selectedFilter by remember { mutableStateOf("সব") }
 
@@ -43,9 +44,15 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         scope.launch {
             busy = true
             val result = MediaRepository.feed(token, userId)
+            val jobResult = MarketplaceRepository.getPublishedJobsPublic()
             posts = result.getOrNull().orEmpty()
-            status = if (result.isSuccess) "নতুন পোস্টগুলো আগে দেখানো হচ্ছে" else
-                (result.exceptionOrNull()?.message ?: "ফিড লোড হয়নি।")
+            jobs = jobResult.getOrNull().orEmpty()
+            status = when {
+                result.isFailure && jobResult.isFailure -> "নিউজ ফিড ও চাকরির পোস্ট লোড হয়নি।"
+                result.isFailure -> result.exceptionOrNull()?.message ?: "পোস্ট লোড হয়নি।"
+                jobResult.isFailure -> "পোস্ট দেখা যাচ্ছে; চাকরির পোস্ট লোড হয়নি।"
+                else -> "নতুন পোস্ট ও প্রকাশিত চাকরির বিজ্ঞপ্তি দেখানো হচ্ছে"
+            }
             busy = false
         }
     }
@@ -166,7 +173,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("সব", "লেখা", "ছবি", "ভিডিও").forEach { filter ->
+            listOf("সব", "কাজ", "লেখা", "ছবি", "ভিডিও").forEach { filter ->
                 FilterChip(selected = selectedFilter == filter, onClick = { selectedFilter = filter },
                     label = { Text(filter) })
             }
@@ -174,22 +181,32 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Text(status, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (visiblePosts.isEmpty() && !busy) {
+        val showJobCards = selectedFilter == "সব" || selectedFilter == "কাজ"
+        val showMediaCards = selectedFilter != "কাজ"
+        val visibleJobs = if (selectedFilter == "কাজ") jobs else jobs.take(8)
+        if (showJobCards && visibleJobs.isNotEmpty()) {
+            Text(if (selectedFilter == "কাজ") "প্রকাশিত চাকরির বিজ্ঞপ্তি" else "সাম্প্রতিক চাকরি",
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            visibleJobs.forEach { job ->
+                JobNewsFeedCard(job = job, token = token, onLogin = onLogin)
+            }
+        }
+        if (showMediaCards) visiblePosts.forEach { post ->
+            MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() }
+        }
+        if (!busy && visiblePosts.isEmpty() && (!showJobCards || visibleJobs.isEmpty())) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(22.dp),
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("📰", style = MaterialTheme.typography.headlineMedium)
-                    Text(if (posts.isEmpty()) "এখনো কোনো পোস্ট নেই" else "এই বিভাগে পোস্ট পাওয়া যায়নি",
+                    Text(if (selectedFilter == "কাজ") "এখনো কোনো চাকরির বিজ্ঞপ্তি নেই" else if (posts.isEmpty() && jobs.isEmpty()) "এখনো কোনো পোস্ট নেই" else "এই বিভাগে পোস্ট পাওয়া যায়নি",
                         fontWeight = FontWeight.SemiBold)
                     Text("আপনার কাজের খবর, অভিজ্ঞতা বা ছবি দিয়ে প্রথম পোস্টটি করুন।",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        }
-        visiblePosts.forEach { post ->
-            MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() }
         }
     }
 
@@ -217,6 +234,54 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
                 }
             }
         )
+    }
+}
+
+
+@Composable
+private fun JobNewsFeedCard(job: MarketplaceRepository.Job, token: String?, onLogin: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var applying by remember(job.id) { mutableStateOf(false) }
+    var message by remember(job.id) { mutableStateOf("") }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("💼 চাকরির বিজ্ঞপ্তি", style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text(job.category, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(job.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(job.description, style = MaterialTheme.typography.bodyMedium)
+            Text("📍 ${job.district}${if (job.upazila.isNotBlank()) ", ${job.upazila}" else ""}",
+                style = MaterialTheme.typography.bodySmall)
+            Text("মজুরি: ৳${job.wagePaisa / 100}", color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            if (message.isNotBlank()) Text(message, style = MaterialTheme.typography.bodySmall,
+                color = if (message.contains("সফল")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !applying,
+                onClick = {
+                    val auth = token
+                    if (auth.isNullOrBlank()) onLogin() else scope.launch {
+                        applying = true
+                        message = ""
+                        val result = MarketplaceRepository.applyToJob(auth, job.id)
+                        applying = false
+                        message = if (result.isSuccess) "আবেদন সফলভাবে জমা হয়েছে।"
+                            else result.exceptionOrNull()?.message ?: "আবেদন জমা হয়নি।"
+                    }
+                }
+            ) { Text(if (applying) "আবেদন পাঠানো হচ্ছে…" else "আবেদন করুন") }
+        }
     }
 }
 
