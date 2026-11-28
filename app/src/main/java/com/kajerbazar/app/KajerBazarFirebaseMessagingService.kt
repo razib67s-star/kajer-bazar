@@ -12,10 +12,35 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 class KajerBazarFirebaseMessagingService : FirebaseMessagingService() {
+    private val serviceJob = kotlinx.coroutines.SupervisorJob()
+    private val serviceScope = kotlinx.coroutines.CoroutineScope(serviceJob + kotlinx.coroutines.Dispatchers.IO)
+
+    override fun onDestroy() {
+        serviceJob.cancel()
+        super.onDestroy()
+    }
+
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Token is generated and refreshed by Firebase. Backend registration will be
-        // added when the secure notification-token API/table is configured.
+        // Firebase may rotate the device token at any time. Re-register it using
+        // a freshly refreshed Supabase access token and the encrypted saved session.
+        val saved = SessionStore.load(applicationContext) ?: return
+        serviceScope.launch {
+            runCatching {
+                val refreshed = AuthRepository.refreshSession(saved.refreshToken)
+                val accessToken = refreshed.accessToken
+                    ?: error(refreshed.message.ifBlank { "সেশন যাচাই করা যায়নি।" })
+                val userId = refreshed.userId?.takeIf { it.isNotBlank() } ?: saved.userId
+                val newRefresh = refreshed.refreshToken?.takeIf { it.isNotBlank() } ?: saved.refreshToken
+                SessionStore.save(
+                    applicationContext,
+                    SessionStore.SavedSession(newRefresh, userId, refreshed.phone ?: refreshed.email ?: saved.account)
+                )
+                MarketplaceRepository.registerPushToken(accessToken, userId, token).getOrThrow()
+            }.onFailure { error ->
+                android.util.Log.w("KajerBazarPush", "Refreshed Firebase token registration failed", error)
+            }
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
