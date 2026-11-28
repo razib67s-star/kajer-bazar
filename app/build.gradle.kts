@@ -14,8 +14,8 @@ android {
         applicationId = "com.kajerbazar.app"
         minSdk = 23
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", "\"https://pdofivhvnofjhozjudji.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_tNW2_Msxl5Hv1vH0iFOvgw__YO8gvBP\"")
@@ -40,6 +40,7 @@ android {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-messaging")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.activity:activity-compose:1.10.0")
     implementation("androidx.compose.ui:ui")
