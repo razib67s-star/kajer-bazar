@@ -33,17 +33,19 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var caption by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf("ছবি বা ভিডিও শেয়ার করুন।") }
+    var status by remember { mutableStateOf("সর্বশেষ আপডেট দেখুন") }
     var busy by remember { mutableStateOf(false) }
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
     var liveRoomUrl by remember { mutableStateOf<String?>(null) }
+    var selectedFilter by remember { mutableStateOf("সব") }
 
     fun refresh() {
         scope.launch {
             busy = true
             val result = MediaRepository.feed(token, userId)
             posts = result.getOrNull().orEmpty()
-            status = if (result.isSuccess) "সর্বশেষ পোস্টগুলো" else (result.exceptionOrNull()?.message ?: "ফিড লোড হয়নি।")
+            status = if (result.isSuccess) "নতুন পোস্টগুলো আগে দেখানো হচ্ছে" else
+                (result.exceptionOrNull()?.message ?: "ফিড লোড হয়নি।")
             busy = false
         }
     }
@@ -91,21 +93,53 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     }
 
     LaunchedEffect(token, userId) { refresh() }
+    val visiblePosts = posts.filter { post ->
+        when (selectedFilter) {
+            "ছবি" -> post.mediaType == "image"
+            "ভিডিও" -> post.mediaType == "video"
+            "লেখা" -> post.mediaType == "text"
+            else -> true
+        }
+    }
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("কমিউনিটি ওয়াল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("আপনার পোস্ট", fontWeight = FontWeight.Bold)
-                OutlinedTextField(caption, { caption = it.take(500) }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("আপনার কথা লিখুন…") }, minLines = 2)
-                Button(
-                    onClick = {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Column {
+                Text("নিউজ ফিড", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("কাজ, অভিজ্ঞতা ও কমিউনিটির নতুন খবর", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TextButton(onClick = { refresh() }, enabled = !busy) { Text("↻ রিফ্রেশ") }
+        }
+
+        Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(Modifier.size(44.dp), shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer) {
+                        Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                            Icon(Icons.Default.Person, contentDescription = "আপনার প্রোফাইল",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                    }
+                    OutlinedTextField(value = caption, onValueChange = { caption = it.take(500) },
+                        modifier = Modifier.weight(1f), placeholder = { Text("কী ভাবছেন?") },
+                        minLines = 1, maxLines = 4)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { if (token == null) onLogin() else imagePicker.launch("image/*") },
+                        enabled = !busy, modifier = Modifier.weight(1f)) { Text("📷 ছবি") }
+                    OutlinedButton(onClick = { if (token == null) onLogin() else videoPicker.launch("video/*") },
+                        enabled = !busy, modifier = Modifier.weight(1f)) { Text("🎥 ভিডিও") }
+                    Button(onClick = {
                         val auth = token
                         val uid = userId
                         if (auth == null || uid == null) onLogin() else scope.launch {
                             busy = true
-                            status = "পোস্ট প্রকাশ হচ্ছে…"
                             val result = MediaRepository.publishText(auth, uid, caption)
                             busy = false
                             if (result.isSuccess) {
@@ -114,55 +148,57 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
                                 refresh()
                             } else status = result.exceptionOrNull()?.message ?: "পোস্ট প্রকাশ হয়নি।"
                         }
-                    },
-                    enabled = !busy && caption.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("📝 লেখা পোস্ট প্রকাশ করুন") }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = { if (token == null) onLogin() else camera.launch(null) },
-                        enabled = !busy, modifier = Modifier.weight(1f)) { Text("📷 ছবি তুলুন") }
-                    OutlinedButton(onClick = { if (token == null) onLogin() else imagePicker.launch("image/*") },
-                        enabled = !busy, modifier = Modifier.weight(1f)) { Text("🖼 ছবি দিন") }
+                    }, enabled = !busy && caption.isNotBlank(), modifier = Modifier.weight(1f)) {
+                        Text(if (busy) "অপেক্ষা" else "পোস্ট")
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = {
-                        if (token == null) onLogin() else runCatching {
-                            val dir = File(context.cacheDir, "videos").apply { mkdirs() }
-                            val file = File(dir, "kajerbazar-${UUID.randomUUID()}.mp4")
-                            val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
-                            pendingVideoUri = uri
-                            recordVideo.launch(uri)
-                        }.onFailure { status = it.message ?: "ক্যামেরা চালু করা যায়নি।" }
-                    }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("🎥 ভিডিও") }
-                    OutlinedButton(onClick = { if (token == null) onLogin() else videoPicker.launch("video/*") },
-                        enabled = !busy, modifier = Modifier.weight(1f)) { Text("ভিডিও আপলোড") }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { if (token == null) onLogin() else camera.launch(null) }, enabled = !busy) {
+                        Text("ক্যামেরা দিয়ে তুলুন")
+                    }
+                    TextButton(onClick = {
+                        if (token == null || userId == null) onLogin() else {
+                            val room = "kajerbazar-" + UUID.randomUUID().toString().replace("-", "").take(18)
+                            liveRoomUrl = "https://meet.jit.si/$room"
+                        }
+                    }, enabled = !busy) { Text("ভিডিও কল") }
                 }
-                Text("ছবি সর্বোচ্চ ৮ MB, ভিডিও সর্বোচ্চ ৫০ MB। ছবি বা ভিডিও নির্বাচন করলেই ক্যাপশনসহ পোস্ট হবে।",
-                    style = MaterialTheme.typography.bodySmall)
             }
         }
-        OutlinedButton(onClick = {
-            if (token == null || userId == null) onLogin() else {
-                val room = "kajerbazar-" + UUID.randomUUID().toString().replace("-", "").take(18)
-                liveRoomUrl = "https://meet.jit.si/$room"
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("সব", "লেখা", "ছবি", "ভিডিও").forEach { filter ->
+                FilterChip(selected = selectedFilter == filter, onClick = { selectedFilter = filter },
+                    label = { Text(filter) })
             }
-        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("🔴 ভিডিও কল রুম তৈরি করুন") }
-        Text("এটি ব্যক্তিগত ভিডিও কল রুমের লিংক (Jitsi Meet)—পাবলিক লাইভ সম্প্রচার নয়। কল করতে লগইন লাগবে; অপর পক্ষকে একই লিংক পাঠান।",
-            style = MaterialTheme.typography.bodySmall)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("সাম্প্রতিক পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            TextButton(onClick = { refresh() }) { Text("রিফ্রেশ") }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        Text(status, style = MaterialTheme.typography.bodySmall)
-        if (posts.isEmpty() && !busy) Text("এখনো কোনো ছবি বা ভিডিও পোস্ট নেই।")
-        posts.forEach { post -> MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() } }
+        Text(status, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (visiblePosts.isEmpty() && !busy) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(22.dp),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("📰", style = MaterialTheme.typography.headlineMedium)
+                    Text(if (posts.isEmpty()) "এখনো কোনো পোস্ট নেই" else "এই বিভাগে পোস্ট পাওয়া যায়নি",
+                        fontWeight = FontWeight.SemiBold)
+                    Text("আপনার কাজের খবর, অভিজ্ঞতা বা ছবি দিয়ে প্রথম পোস্টটি করুন।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        visiblePosts.forEach { post ->
+            MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() }
+        }
     }
+
     liveRoomUrl?.let { roomUrl ->
         AlertDialog(
             onDismissRequest = { liveRoomUrl = null },
             title = { Text("ভিডিও কল রুম তৈরি হয়েছে") },
-            text = { Text("এটি Jitsi Meet-এর বাহ্যিক ভিডিও কল রুম, পাবলিক লাইভ সম্প্রচার নয়। যাঁর সঙ্গে কথা বলবেন তাঁকে লিংক পাঠান। লিংকটি যাঁদের কাছে থাকবে তাঁরা রুমে প্রবেশ করতে পারবেন।\n\n$roomUrl") },
+            text = { Text("এটি Jitsi Meet-এর বাহ্যিক ভিডিও কল রুম, পাবলিক লাইভ সম্প্রচার নয়। যাঁর সঙ্গে কথা বলবেন তাঁকে লিংক পাঠান। লিংকটি যাঁদের কাছে থাকবে তাঁরা রুমে প্রবেশ করতে পারবেন।\\n\\n$roomUrl") },
             confirmButton = {
                 TextButton(onClick = {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(roomUrl)))
@@ -174,9 +210,9 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
                     TextButton(onClick = {
                         val share = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "কাজের বাজার লাইভ ভিডিও কল: $roomUrl")
+                            putExtra(Intent.EXTRA_TEXT, "কাজের বাজার ভিডিও কল: $roomUrl")
                         }
-                        context.startActivity(Intent.createChooser(share, "লাইভ কলের লিংক শেয়ার করুন"))
+                        context.startActivity(Intent.createChooser(share, "কলের লিংক শেয়ার করুন"))
                     }) { Text("লিংক শেয়ার") }
                     TextButton(onClick = { liveRoomUrl = null }) { Text("বন্ধ") }
                 }
