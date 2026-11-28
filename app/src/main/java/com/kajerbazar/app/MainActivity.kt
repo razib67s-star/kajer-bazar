@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
@@ -91,6 +93,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KajerBazarApp() {
     val appContext = LocalContext.current.applicationContext
+    var appLanguage by remember {
+        mutableStateOf(appContext.getSharedPreferences("kajer_bazar_preferences", android.content.Context.MODE_PRIVATE)
+            .getString("app_language", "bn") ?: "bn")
+    }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    val isEnglish = appLanguage == "en"
+    fun label(bangla: String, english: String) = if (isEnglish) english else bangla
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(true) }
     var showAppSettings by remember { mutableStateOf(false) }
@@ -236,8 +245,45 @@ fun KajerBazarApp() {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var selectedPage by remember { mutableStateOf("home") }
-    var viewedProfileId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(appLanguage) {
+        appContext.getSharedPreferences("kajer_bazar_preferences", android.content.Context.MODE_PRIVATE)
+            .edit().putString("app_language", appLanguage).apply()
+    }
     val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    var viewedProfileId by remember { mutableStateOf<String?>(null) }
+    var viewedProfile by remember { mutableStateOf<MarketplaceRepository.Profile?>(null) }
+    var publicProfileLoading by remember { mutableStateOf(false) }
+    LaunchedEffect(selectedPage, viewedProfileId, accessToken) {
+        val token = accessToken
+        val profileId = viewedProfileId
+        if (selectedPage == "publicProfile" && token != null && !profileId.isNullOrBlank()) {
+            publicProfileLoading = true
+            viewedProfile = MarketplaceRepository.getProfile(token, profileId).getOrNull()
+            publicProfileLoading = false
+        } else if (selectedPage != "publicProfile") {
+            viewedProfile = null
+        }
+    }
+    BackHandler(enabled = true) {
+        when {
+            showLanguageDialog -> showLanguageDialog = false
+            showDeleteAccountConfirm -> showDeleteAccountConfirm = false
+            showAdminEditDialog -> { showAdminEditDialog = false; showAdminUsersDialog = true }
+            showAdminUsersDialog -> showAdminUsersDialog = false
+            showAppSettings -> showAppSettings = false
+            showProfileForm -> showProfileForm = false
+            showJobForm -> showJobForm = false
+            showEmployerForm -> showEmployerForm = false
+            showMyApplicationsDialog -> showMyApplicationsDialog = false
+            showApplicationsDialog -> { showApplicationsDialog = false; selectedEmployerJob = null; employerApplications = emptyList() }
+            drawerState.isOpen -> scope.launch { drawerState.close() }
+            selectedPage != "home" -> {
+                selectedPage = "home"
+                scope.launch { mainListState.animateScrollToItem(0) }
+            }
+            showLogin && signedInAccount != null -> showLogin = false
+        }
+    }
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             val token = accessToken
@@ -414,6 +460,12 @@ fun KajerBazarApp() {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        label = { Text(label("ভাষা পরিবর্তন", "Change language")) }, selected = false,
+                        onClick = { scope.launch { drawerState.close() }; showLanguageDialog = true },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                         label = { Text("অ্যাপ সেটিংস") }, selected = false,
                         onClick = { scope.launch { drawerState.close() }; showAppSettings = true },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
@@ -438,8 +490,17 @@ fun KajerBazarApp() {
                             style = MaterialTheme.typography.headlineSmall)
                     },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "মেনু খুলুন", tint = Blue)
+                        if (selectedPage != "home") {
+                            IconButton(onClick = {
+                                selectedPage = "home"
+                                scope.launch { mainListState.animateScrollToItem(0) }
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = label("পেছনে যান", "Go back"), tint = Blue)
+                            }
+                        } else {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = label("মেনু খুলুন", "Open menu"), tint = Blue)
+                            }
                         }
                     },
                     actions = {
@@ -499,8 +560,63 @@ fun KajerBazarApp() {
                         onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
                 }
                 if (selectedPage == "publicProfile" && viewedProfileId != null) item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ব্যবহারকারীর প্রোফাইল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.extraLarge,
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                        ) {
+                            Column {
+                                Box(
+                                    Modifier.fillMaxWidth().height(132.dp).background(
+                                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                            colors = listOf(Color(0xFF123B70), Color(0xFF2F80B7), Color(0xFFB8D9F2))
+                                        )
+                                    ),
+                                    contentAlignment = androidx.compose.ui.Alignment.BottomStart
+                                ) {
+                                    Text("কাজের বাজার প্রোফাইল", Modifier.padding(16.dp),
+                                        color = Color.White, fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleLarge)
+                                }
+                                Row(
+                                    Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Box(
+                                        Modifier.size(76.dp).clip(CircleShape).background(Color(0xFFE7EEF7)),
+                                        contentAlignment = androidx.compose.ui.Alignment.Center
+                                    ) {
+                                        val avatar = viewedProfile?.avatarUrl.orEmpty()
+                                        if (avatar.isNotBlank()) {
+                                            AsyncImage(avatar, contentDescription = "প্রোফাইল ছবি",
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                                        } else Icon(Icons.Default.Person, null, Modifier.size(42.dp), tint = Blue)
+                                    }
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text(
+                                            viewedProfile?.fullName?.ifBlank { "ব্যবহারকারী" }
+                                                ?: if (publicProfileLoading) "প্রোফাইল লোড হচ্ছে…" else "ব্যবহারকারীর প্রোফাইল",
+                                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            viewedProfile?.workType?.ifBlank { "কাজের বাজার সদস্য" } ?: "কাজের বাজার সদস্য",
+                                            color = Blue, style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        val area = listOfNotNull(
+                                            viewedProfile?.district?.takeIf { it.isNotBlank() },
+                                            viewedProfile?.upazila?.takeIf { it.isNotBlank() }
+                                        ).joinToString(", ")
+                                        if (area.isNotBlank()) Text("📍 $area", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                                if (viewedProfile?.skills?.isNotBlank() == true) {
+                                    Text("দক্ষতা: ${viewedProfile!!.skills}", Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                                        style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
                         ProfileFollowCard(token = accessToken, viewerId = userId, profileId = viewedProfileId, onLogin = { showLogin = true })
                         OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Text("← নিউজ ফিডে ফিরে যান")
@@ -825,15 +941,6 @@ fun KajerBazarApp() {
                                     ProfileInfoRow("মোবাইল", currentProfile.contactPhone.ifBlank { currentProfile.authPhone })
                                     ProfileInfoRow("বর্তমান ঠিকানা", currentProfile.currentAddress)
                                     ProfileInfoRow("স্থায়ী ঠিকানা", currentProfile.permanentAddress)
-                                    if (currentProfile.role == "worker") {
-                                        MediaPostsSection(
-                                            token = accessToken,
-                                            userId = userId,
-                                            onLogin = { showLogin = true },
-                                            profileUserId = userId,
-                                            onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile" }
-                                        )
-                                    }
                                     Spacer(Modifier.height(6.dp))
                                     if (currentProfile.role == "worker") {
                                         OutlinedButton(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) {
@@ -1319,6 +1426,30 @@ fun KajerBazarApp() {
                     }) { Text(if (busy) "সংরক্ষণ হচ্ছে…" else "সংরক্ষণ করুন") }
                 },
                 dismissButton = { TextButton(enabled = !busy, onClick = { showProfileForm = false }) { Text("বাতিল") } }
+            )
+        }
+
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                title = { Text(label("ভাষা নির্বাচন করুন", "Choose language")) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("বাংলা")
+                            RadioButton(selected = appLanguage == "bn", onClick = { appLanguage = "bn" })
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("English")
+                            RadioButton(selected = appLanguage == "en", onClick = { appLanguage = "en" })
+                        }
+                        Text(label("নির্বাচিত ভাষা পরবর্তীবার অ্যাপ খুললেও সংরক্ষিত থাকবে।", "Your language choice will be saved for the next time you open the app."),
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) { Text(label("সম্পন্ন", "Done")) }
+                }
             )
         }
 
