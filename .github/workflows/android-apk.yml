@@ -50,6 +50,7 @@ jobs:
           echo "$BADGING" | grep -q "launchable-activity:"
 
       - name: Verify instrumentation tests and launch APK on Android emulator
+        id: emulator_check
         continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -81,3 +82,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
+
+      - name: Fail workflow if emulator verification failed
+        if: steps.emulator_check.outcome == 'failure'
+        run: |
+          echo "Emulator instrumentation/install/launch verification failed. APK artifact was uploaded for diagnosis."
+          exit 1
