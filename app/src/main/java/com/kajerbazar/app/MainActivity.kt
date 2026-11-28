@@ -690,53 +690,32 @@ fun KajerBazarApp() {
                             else -> "কর্মী / কাজপ্রার্থী"
                         }
                         val areaLabel = listOfNotNull(currentProfile.district.takeIf { it.isNotBlank() }, currentProfile.upazila.takeIf { it.isNotBlank() }).joinToString(", ").ifBlank { "এলাকা যোগ করা হয়নি" }
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.extraLarge,
-                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                        ) {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge, elevation = CardDefaults.cardElevation(2.dp)) {
                             Column {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().height(156.dp)
-                                        .background(
-                                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                                                colors = if (isEmployerProfile) listOf(Color(0xFF123B70), Color(0xFF3B82B8), Color(0xFFB8D9F2))
-                                                else listOf(Color(0xFF075B48), Color(0xFF239B78), Color(0xFFBCE8D8))
-                                            )
-                                        )
-                                ) {
-                                    Text(
-                                        if (isEmployerProfile) "কাজদাতা পরিচিতি" else "আমার কর্মী প্রোফাইল",
-                                        modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(16.dp),
-                                        color = Color.White, fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleLarge
-                                    )
+                                Box(Modifier.fillMaxWidth().height(190.dp).background(brush = androidx.compose.ui.graphics.Brush.linearGradient(colors = if (isEmployerProfile) listOf(Color(0xFF1D4ED8), Color(0xFF60A5FA)) else listOf(Color(0xFF047857), Color(0xFF34D399))))) {
+                                    Text(if (isEmployerProfile) "কাজদাতা কভার" else "কর্মী কভার ফটো", Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(16.dp), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                                 }
-                                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        Box(
-                                            modifier = Modifier.padding(top = 0.dp).size(94.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFFE7EEF7)),
-                                            contentAlignment = androidx.compose.ui.Alignment.Center
-                                        ) {
-                                            if (currentProfile.avatarUrl.isNotBlank()) {
-                                                AsyncImage(model = currentProfile.avatarUrl, contentDescription = "প্রোফাইল ছবি",
-                                                    modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
-                                            } else {
-                                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(52.dp), tint = Blue)
-                                            }
+                                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                                    Row(Modifier.offset(y = (-42).dp), verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Box(Modifier.size(112.dp).clip(CircleShape).background(Color.White).padding(4.dp).clip(CircleShape).background(Color(0xFFE7EEF7)), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                            if (currentProfile.avatarUrl.isNotBlank()) AsyncImage(model = currentProfile.avatarUrl, contentDescription = "প্রোফাইল ছবি", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                                            else Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(58.dp), tint = Blue)
                                         }
-                                        Column(Modifier.weight(1f).padding(bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text(displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                                            Text(roleLabel, color = Blue, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                        Column(Modifier.weight(1f).padding(bottom = 6.dp)) {
+                                            Text(displayName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                                            Text(roleLabel, color = Blue, fontWeight = FontWeight.SemiBold)
                                         }
                                     }
-                                    Text("📍 $areaLabel", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        AssistChip(onClick = {}, label = { Text("কাজের বাজার সদস্য") }, leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) })
-                                        AssistChip(onClick = {}, label = { Text(if (isEmployerProfile) "নিয়োগদাতা" else "কর্মী") })
+                                    Column(Modifier.offset(y = (-30).dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Text("📍 $areaLabel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) { Text("কাজের বাজার সদস্য", fontWeight = FontWeight.Medium); Text(if (isEmployerProfile) "নিয়োগদাতা" else "কর্মী", color = Blue, fontWeight = FontWeight.SemiBold) }
+                                        
+                                        HorizontalDivider()
+                                        Text(if (isEmployerProfile) "ব্যক্তিগত ও প্রতিষ্ঠানের তথ্য" else "কর্মীর ব্যক্তিগত বিবরণ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                     }
+                                }
+                            }
+                        }
                                     if (currentProfile.role == "worker" && userId != null) {
                                         ProfileFollowCard(
                                             token = accessToken,
