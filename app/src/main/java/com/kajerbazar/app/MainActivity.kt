@@ -81,15 +81,24 @@ private fun ProfileInfoRow(label: String, value: String) {
 }
 
 class MainActivity : ComponentActivity() {
+    private var recoveryLink by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { KajerBazarApp() }
+        recoveryLink = intent?.dataString
+        setContent { KajerBazarApp(recoveryLink = recoveryLink, onRecoveryLinkHandled = { recoveryLink = null }) }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recoveryLink = intent.dataString
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KajerBazarApp() {
+fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Unit = {}) {
     val appContext = LocalContext.current.applicationContext
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(true) }
@@ -111,6 +120,11 @@ fun KajerBazarApp() {
     var isSignUp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var authMessage by remember { mutableStateOf("") }
+    var showForgotPassword by remember { mutableStateOf(false) }
+    var resetAccessToken by remember { mutableStateOf<String?>(null) }
+    var resetPassword by remember { mutableStateOf("") }
+    var confirmResetPassword by remember { mutableStateOf("") }
+    var resetMessage by remember { mutableStateOf("") }
     var signedInAccount by remember { mutableStateOf<String?>(null) }
     var accessToken by remember { mutableStateOf<String?>(null) }
     var userId by remember { mutableStateOf<String?>(null) }
@@ -140,6 +154,25 @@ fun KajerBazarApp() {
         (upazilaFilter.isBlank() || job.upazila.contains(upazilaFilter.trim(), ignoreCase = true)) &&
         (categoryFilter.isBlank() || job.category.contains(categoryFilter.trim(), ignoreCase = true)) &&
         (!showSavedOnly || job.id in savedJobIds)
+    }
+    LaunchedEffect(recoveryLink) {
+        val link = recoveryLink
+        if (!link.isNullOrBlank()) {
+            val fragment = Uri.parse(link).fragment.orEmpty()
+            val params = Uri.parse("https://local.invalid/?$fragment")
+            val token = params.getQueryParameter("access_token")
+            val recoveryType = params.getQueryParameter("type")
+            if (!token.isNullOrBlank() && recoveryType == "recovery") {
+                resetAccessToken = token
+                showLogin = false
+                showForgotPassword = false
+                resetMessage = "নতুন পাসওয়ার্ড দিন।"
+            } else {
+                authMessage = "রিসেট লিংকটি সঠিক নয় বা মেয়াদ শেষ হয়েছে। আবার রিসেট ইমেইল নিন।"
+                showLogin = true
+            }
+            onRecoveryLinkHandled()
+        }
     }
     LaunchedEffect(Unit) {
         connectionStatus = withContext(Dispatchers.IO) { SupabaseConnection.checkApi() }
@@ -1105,6 +1138,12 @@ fun KajerBazarApp() {
                                     Text("ইনবক্সে না পেলে Spam/Junk ফোল্ডার দেখুন।", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 } else {
                                     OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !busy, label = { Text("পাসওয়ার্ড") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                                if (!usePhoneOtp && !isSignUp && !emailOtpSent) {
+                                    TextButton(enabled = !busy, onClick = {
+                                        authMessage = ""
+                                        showForgotPassword = true
+                                    }) { Text("পাসওয়ার্ড ভুলে গেছেন?") }
+                                }
                                 }
                             }
                         }
@@ -1194,6 +1233,82 @@ fun KajerBazarApp() {
                             Text(if (usePhoneOtp && otpSent) "নম্বর পরিবর্তন" else if (!usePhoneOtp && emailOtpSent) "তথ্য পরিবর্তন" else if (isSignUp) "আগে অ্যাকাউন্ট আছে? লগইন" else "নতুন অ্যাকাউন্ট খুলুন")
                         }
                     } else TextButton(onClick = { showLogin = false }) { Text("বন্ধ") }
+                }
+            )
+        }
+
+        if (showForgotPassword) {
+            AlertDialog(
+                onDismissRequest = { if (!busy) showForgotPassword = false },
+                title = { Text("পাসওয়ার্ড রিসেট") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("আপনার অ্যাকাউন্টের ইমেইল লিখুন। রিসেট লিংক ইমেইলে পাঠানো হবে।")
+                        OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !busy, label = { Text("ইমেইল ঠিকানা") }, singleLine = true)
+                        if (resetMessage.isNotBlank()) Text(resetMessage, color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        busy = true
+                        resetMessage = ""
+                        scope.launch {
+                            val result = AuthRepository.requestPasswordReset(email)
+                            busy = false
+                            resetMessage = result.message
+                            if (result.success) authMessage = result.message
+                        }
+                    }) { Text(if (busy) "পাঠানো হচ্ছে…" else "রিসেট লিংক পাঠান") }
+                },
+                dismissButton = {
+                    TextButton(enabled = !busy, onClick = { showForgotPassword = false; resetMessage = "" }) { Text("ফিরে যান") }
+                }
+            )
+        }
+
+        if (resetAccessToken != null) {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("নতুন পাসওয়ার্ড সেট করুন") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(value = resetPassword, onValueChange = { resetPassword = it }, label = { Text("নতুন পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                        OutlinedTextField(value = confirmResetPassword, onValueChange = { confirmResetPassword = it }, label = { Text("নতুন পাসওয়ার্ড আবার লিখুন") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                        if (resetMessage.isNotBlank()) Text(resetMessage, color = if (resetMessage.contains("সফল")) Color(0xFF18733B) else MaterialTheme.colorScheme.error)
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        if (resetPassword != confirmResetPassword) {
+                            resetMessage = "দুইটি পাসওয়ার্ড এক নয়।"
+                        } else {
+                            busy = true
+                            scope.launch {
+                                val result = AuthRepository.updatePassword(resetAccessToken.orEmpty(), resetPassword)
+                                busy = false
+                                resetMessage = result.message
+                                if (result.success) {
+                                    resetAccessToken = null
+                                    resetPassword = ""
+                                    confirmResetPassword = ""
+                                    password = ""
+                                    isSignUp = false
+                                    usePhoneOtp = false
+                                    showLogin = true
+                                    authMessage = result.message
+                                }
+                            }
+                        }
+                    }) { Text(if (busy) "সংরক্ষণ হচ্ছে…" else "পাসওয়ার্ড পরিবর্তন করুন") }
+                },
+                dismissButton = {
+                    TextButton(enabled = !busy, onClick = {
+                        resetAccessToken = null
+                        resetPassword = ""
+                        confirmResetPassword = ""
+                        resetMessage = ""
+                        showLogin = true
+                    }) { Text("বাতিল") }
                 }
             )
         }
