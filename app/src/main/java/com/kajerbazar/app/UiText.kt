@@ -426,6 +426,15 @@ private fun translateKajerBazarUiText(value: String, language: String): String {
         value.startsWith("উপজেলা: ") -> "Upazila: " + value.removePrefix("উপজেলা: ")
         value.startsWith("অভিজ্ঞতা ") -> "Experience " + value.removePrefix("অভিজ্ঞতা ")
         value.startsWith("দক্ষতা ") -> "Skills " + value.removePrefix("দক্ষতা ")
+        value.startsWith("লগইন করা অ্যাকাউন্ট: ") -> "Signed-in account: " + value.removePrefix("লগইন করা অ্যাকাউন্ট: ")
+        value.startsWith("সর্বশেষ ঘোষণা: ") -> "Latest Announcement: " + value.removePrefix("সর্বশেষ ঘোষণা: ")
+        value.startsWith("সহায়তা নম্বর: ") -> "Support Number: " + value.removePrefix("সহায়তা নম্বর: ")
+        value.startsWith("আবেদনের অবস্থা: ") -> "Application Status: " + value.removePrefix("আবেদনের অবস্থা: ")
+        value.endsWith(" লাইক") -> value.removeSuffix(" লাইক") + " Likes"
+        value.endsWith(" মন্তব্য") -> value.removeSuffix(" মন্তব্য") + " Comments"
+        value.startsWith("কাজের বাজার লাইভ ভিডিও কল: ") -> "Kajer Bazar video call: " + value.removePrefix("কাজের বাজার লাইভ ভিডিও কল: ")
+        value.startsWith("এটি Jitsi Meet-এর বাহ্যিক ভিডিও কল রুম") -> "This is an external Jitsi Meet video call room, not a public livestream. Share the link with the person you want to call. Anyone with the link may enter.\n\n" + value.substringAfter("\\n\\n")
+        value.startsWith("পোস্ট ID: ") -> value.replace("পোস্ট ID: ", "Post ID: ").replace("\\nলেখক ID: ", "\\nAuthor ID: ").replace("\\nপোস্টের লেখা: ", "\\nPost: ").replace("\\nরিপোর্টের কারণ: ", "\\nReport reason: ")
         else -> value
     }
 }
