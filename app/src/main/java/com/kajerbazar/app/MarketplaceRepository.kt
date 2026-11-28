@@ -12,7 +12,7 @@ object MarketplaceRepository {
     data class Profile(
         val fullName: String, val role: String, val district: String, val upazila: String,
         val authPhone: String, val contactPhone: String, val currentAddress: String, val permanentAddress: String,
-        val workType: String, val skills: String, val avatarUrl: String,
+        val workType: String, val skills: String, val avatarUrl: String, val coverUrl: String,
         val organizationName: String, val organizationType: String, val organizationDetails: String,
         val contactPerson: String, val experience: String, val availability: String,
         val expectedWage: String, val portfolio: String
@@ -48,7 +48,7 @@ object MarketplaceRepository {
 
     suspend fun getProfile(token: String, userId: String): Result<Profile> = withContext(Dispatchers.IO) {
         runCatching {
-            val path = "/rest/v1/profiles?select=full_name,role,district,upazila,phone,contact_phone,current_address,permanent_address,work_type,skills,avatar_url,organization_name,organization_type,organization_details,contact_person,experience,availability,expected_wage,portfolio&id=eq.${URLEncoder.encode(userId, "UTF-8")}"
+            val path = "/rest/v1/profiles?select=full_name,role,district,upazila,phone,contact_phone,current_address,permanent_address,work_type,skills,avatar_url,cover_url,organization_name,organization_type,organization_details,contact_person,experience,availability,expected_wage,portfolio&id=eq.${URLEncoder.encode(userId, "UTF-8")}"
             val (status, body) = request(path, token)
             if (status !in 200..299) error("প্রোফাইল পাওয়া যায়নি ($status)")
             val rows = JSONArray(body)
@@ -59,7 +59,7 @@ object MarketplaceRepository {
                 row.optString("district"), row.optString("upazila"),
                 row.optString("phone"), row.optString("contact_phone"), row.optString("current_address"),
                 row.optString("permanent_address"), row.optString("work_type"),
-                row.optString("skills"), row.optString("avatar_url"),
+                row.optString("skills"), row.optString("avatar_url"), row.optString("cover_url"),
                 row.optString("organization_name"), row.optString("organization_type"),
                 row.optString("organization_details"), row.optString("contact_person"),
                 row.optString("experience"), row.optString("availability"),
@@ -133,6 +133,40 @@ object MarketplaceRepository {
                 connection.disconnect()
             }
         }
+
+    suspend fun uploadCoverPhoto(token: String, userId: String, bytes: ByteArray, mimeType: String, extension: String): String =
+        withContext(Dispatchers.IO) {
+            require(bytes.isNotEmpty() && bytes.size <= 5 * 1024 * 1024) { "কভার ছবির আকার ৫ MB-এর মধ্যে হতে হবে।" }
+            require(mimeType in setOf("image/jpeg", "image/png", "image/webp")) { "শুধু JPG, PNG অথবা WebP ছবি ব্যবহার করুন।" }
+            val path = "/storage/v1/object/avatars/$userId/cover.$extension"
+            val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection)
+            try {
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 20000
+                connection.readTimeout = 20000
+                connection.doOutput = true
+                connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.setRequestProperty("Content-Type", mimeType)
+                connection.setRequestProperty("x-upsert", "true")
+                connection.outputStream.use { it.write(bytes) }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (status !in 200..299) error("কভার ছবি আপলোড হয়নি ($status): $response")
+                BuildConfig.SUPABASE_URL.trimEnd('/') + "/storage/v1/object/public/avatars/$userId/cover.$extension"
+            } finally {
+                connection.disconnect()
+            }
+        }
+
+    suspend fun updateCoverPhoto(token: String, coverUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = JSONObject().put("p_cover_url", coverUrl)
+            val (status, response) = request("/rest/v1/rpc/update_my_cover_photo", token, "POST", body)
+            if (status !in 200..299) error("কভার ছবি সংরক্ষণ হয়নি ($status): $response")
+        }
+    }
 
     suspend fun getPublishedJobsPublic(): Result<List<Job>> = withContext(Dispatchers.IO) {
         runCatching {
