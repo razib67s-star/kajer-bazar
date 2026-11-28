@@ -36,6 +36,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     var status by remember { mutableStateOf("ছবি বা ভিডিও শেয়ার করুন।") }
     var busy by remember { mutableStateOf(false) }
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
+    var feedFilter by remember { mutableStateOf("all") }
     var liveRoomUrl by remember { mutableStateOf<String?>(null) }
 
     fun refresh() {
@@ -150,13 +151,40 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         Text("এটি ব্যক্তিগত ভিডিও কল রুমের লিংক (Jitsi Meet)—পাবলিক লাইভ সম্প্রচার নয়। কল করতে লগইন লাগবে; অপর পক্ষকে একই লিংক পাঠান।",
             style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("সাম্প্রতিক পোস্ট", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            TextButton(onClick = { refresh() }) { Text("রিফ্রেশ") }
+            Text("নিউজ ফিড", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            TextButton(onClick = { refresh() }, enabled = !busy) { Text("↻ রিফ্রেশ") }
+        }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(
+                "all" to "সব পোস্ট",
+                "image" to "ছবি",
+                "video" to "ভিডিও",
+                "text" to "লেখা"
+            ).forEach { (key, title) ->
+                FilterChip(
+                    selected = feedFilter == key,
+                    onClick = { feedFilter = key },
+                    label = { Text(title) }
+                )
+            }
+        }
+        val visiblePosts = when (feedFilter) {
+            "image" -> posts.filter { it.mediaType == "image" }
+            "video" -> posts.filter { it.mediaType == "video" }
+            "text" -> posts.filter { it.mediaType != "image" && it.mediaType != "video" }
+            else -> posts
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Text(status, style = MaterialTheme.typography.bodySmall)
-        if (posts.isEmpty() && !busy) Text("এখনো কোনো ছবি বা ভিডিও পোস্ট নেই।")
-        posts.forEach { post -> MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() } }
+        if (posts.isEmpty() && !busy) {
+            Text("এখনো কোনো পোস্ট নেই। প্রথম পোস্টটি আপনিই শেয়ার করুন।")
+        } else if (visiblePosts.isEmpty() && !busy) {
+            Text("এই বিভাগে এখনো কোনো পোস্ট নেই। অন্য বিভাগ নির্বাচন করুন।")
+        }
+        visiblePosts.forEach { post -> MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() } }
     }
     liveRoomUrl?.let { roomUrl ->
         AlertDialog(
