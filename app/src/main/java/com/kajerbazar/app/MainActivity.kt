@@ -522,6 +522,9 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
                         IconButton(onClick = { selectedPage = "people"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Icon(Icons.Default.Search, contentDescription = "খুঁজুন", tint = Color.Black)
                         }
+                        IconButton(onClick = { selectedPage = "community"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                            Icon(Icons.Default.Notifications, contentDescription = "নোটিফিকেশন", tint = Color.Black)
+                        }
                         IconButton(onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Icon(Icons.Default.Email, contentDescription = "মেসেজ", tint = Color.Black)
                         }
