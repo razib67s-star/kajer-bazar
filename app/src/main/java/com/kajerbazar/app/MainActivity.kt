@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
@@ -91,6 +93,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KajerBazarApp() {
     val appContext = LocalContext.current.applicationContext
+    var appLanguage by remember {
+        mutableStateOf(appContext.getSharedPreferences("kajer_bazar_preferences", android.content.Context.MODE_PRIVATE)
+            .getString("app_language", "bn") ?: "bn")
+    }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    val isEnglish = appLanguage == "en"
+    fun label(bangla: String, english: String) = if (isEnglish) english else bangla
     var connectionStatus by remember { mutableStateOf("Supabase সংযোগ পরীক্ষা হচ্ছে…") }
     var showLogin by remember { mutableStateOf(true) }
     var showAppSettings by remember { mutableStateOf(false) }
@@ -236,6 +245,27 @@ fun KajerBazarApp() {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var selectedPage by remember { mutableStateOf("home") }
+    LaunchedEffect(appLanguage) {
+        appContext.getSharedPreferences("kajer_bazar_preferences", android.content.Context.MODE_PRIVATE)
+            .edit().putString("app_language", appLanguage).apply()
+    }
+    BackHandler(enabled = true) {
+        when {
+            showLanguageDialog -> showLanguageDialog = false
+            showAppSettings -> showAppSettings = false
+            showProfileForm -> showProfileForm = false
+            showJobForm -> showJobForm = false
+            showEmployerForm -> showEmployerForm = false
+            showMyApplicationsDialog -> showMyApplicationsDialog = false
+            showApplicationsDialog -> showApplicationsDialog = false
+            drawerState.isOpen -> scope.launch { drawerState.close() }
+            selectedPage != "home" -> {
+                selectedPage = "home"
+                scope.launch { mainListState.animateScrollToItem(0) }
+            }
+            showLogin && signedInAccount != null -> showLogin = false
+        }
+    }
     var viewedProfileId by remember { mutableStateOf<String?>(null) }
     val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -414,6 +444,12 @@ fun KajerBazarApp() {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        label = { Text(label("ভাষা পরিবর্তন", "Change language")) }, selected = false,
+                        onClick = { scope.launch { drawerState.close() }; showLanguageDialog = true },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                         label = { Text("অ্যাপ সেটিংস") }, selected = false,
                         onClick = { scope.launch { drawerState.close() }; showAppSettings = true },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
@@ -438,8 +474,17 @@ fun KajerBazarApp() {
                             style = MaterialTheme.typography.headlineSmall)
                     },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "মেনু খুলুন", tint = Blue)
+                        if (selectedPage != "home") {
+                            IconButton(onClick = {
+                                selectedPage = "home"
+                                scope.launch { mainListState.animateScrollToItem(0) }
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = label("পেছনে যান", "Go back"), tint = Blue)
+                            }
+                        } else {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = label("মেনু খুলুন", "Open menu"), tint = Blue)
+                            }
                         }
                     },
                     actions = {
@@ -1319,6 +1364,30 @@ fun KajerBazarApp() {
                     }) { Text(if (busy) "সংরক্ষণ হচ্ছে…" else "সংরক্ষণ করুন") }
                 },
                 dismissButton = { TextButton(enabled = !busy, onClick = { showProfileForm = false }) { Text("বাতিল") } }
+            )
+        }
+
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                title = { Text(label("ভাষা নির্বাচন করুন", "Choose language")) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("বাংলা")
+                            RadioButton(selected = appLanguage == "bn", onClick = { appLanguage = "bn" })
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("English")
+                            RadioButton(selected = appLanguage == "en", onClick = { appLanguage = "en" })
+                        }
+                        Text(label("নির্বাচিত ভাষা পরবর্তীবার অ্যাপ খুললেও সংরক্ষিত থাকবে।", "Your language choice will be saved for the next time you open the app."),
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) { Text(label("সম্পন্ন", "Done")) }
+                }
             )
         }
 
