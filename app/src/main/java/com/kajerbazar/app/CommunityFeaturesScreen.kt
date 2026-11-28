@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun CommunityFeaturesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
@@ -39,8 +40,11 @@ fun CommunityFeaturesScreen(token: String?, userId: String?, onLogin: () -> Unit
 
     LaunchedEffect(token, userId) {
         if (!token.isNullOrBlank() && !userId.isNullOrBlank()) {
-            MarketplaceRepository.getCommunityNotifications(token, userId).onSuccess { notices = it }
-                .onFailure { message = it.message ?: "নোটিফিকেশন লোড হয়নি।" }
+            while (true) {
+                MarketplaceRepository.getCommunityNotifications(token, userId).onSuccess { notices = it }
+                    .onFailure { message = it.message ?: "নোটিফিকেশন লোড হয়নি।" }
+                delay(30000L)
+            }
         }
     }
 
@@ -50,20 +54,68 @@ fun CommunityFeaturesScreen(token: String?, userId: String?, onLogin: () -> Unit
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("নোটিফিকেশন", style = MaterialTheme.typography.titleLarge)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("নোটিফিকেশন", style = MaterialTheme.typography.titleLarge)
+                    val unread = notices.count { it.readAt == null }
+                    if (unread > 0) Text("নতুন $unread", color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge)
+                }
                 if (notices.isEmpty()) Text("এখনো কোনো নোটিফিকেশন নেই।")
                 notices.forEach { n ->
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(n.title, style = MaterialTheme.typography.titleMedium)
-                        if (n.body.isNotBlank()) Text(n.body)
-                        Text(if (n.readAt == null) "নতুন" else "পঠিত", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                    Card(
+                        onClick = {
+                            val t = token
+                            val u = userId
+                            if (t != null && u != null && n.readAt == null) scope.launch {
+                                MarketplaceRepository.markNotificationRead(t, u, n.id)
+                                    .onSuccess {
+                                        notices = notices.map { item ->
+                                            if (item.id == n.id) item.copy(readAt = "read") else item
+                                        }
+                                    }.onFailure { message = it.message ?: "নোটিফিকেশন পঠিত করা যায়নি।" }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor =
+                            if (n.readAt == null) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(n.title, style = MaterialTheme.typography.titleMedium)
+                            if (n.body.isNotBlank()) Text(n.body)
+                            Text(if (n.readAt == null) "● নতুন • চাপলে পঠিত হবে" else "পঠিত",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary)
+                            Text(n.createdAt.take(16).replace("T", " "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    HorizontalDivider()
                 }
-                OutlinedButton(onClick = {
-                    if (token.isNullOrBlank() || userId.isNullOrBlank()) onLogin()
-                    else scope.launch { MarketplaceRepository.getCommunityNotifications(token, userId).onSuccess { notices = it }.onFailure { message = it.message ?: "লোড হয়নি" } }
-                }, enabled = !busy) { Text("নোটিফিকেশন রিফ্রেশ") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = {
+                        if (token.isNullOrBlank() || userId.isNullOrBlank()) onLogin()
+                        else scope.launch {
+                            MarketplaceRepository.getCommunityNotifications(token, userId)
+                                .onSuccess { notices = it }
+                                .onFailure { message = it.message ?: "লোড হয়নি" }
+                        }
+                    }, enabled = !busy) { Text("রিফ্রেশ") }
+                    OutlinedButton(onClick = {
+                        val t = token
+                        val u = userId
+                        if (t == null || u == null) onLogin()
+                        else scope.launch {
+                            busy = true
+                            MarketplaceRepository.markAllNotificationsRead(t, u)
+                                .onSuccess {
+                                    notices = notices.map { it.copy(readAt = it.readAt ?: "read") }
+                                    message = "সব নোটিফিকেশন পঠিত হয়েছে।"
+                                }.onFailure { message = it.message ?: "আপডেট হয়নি।" }
+                            busy = false
+                        }
+                    }, enabled = !busy && notices.any { it.readAt == null }) { Text("সব পঠিত করুন") }
+                }
             }
         }
 
