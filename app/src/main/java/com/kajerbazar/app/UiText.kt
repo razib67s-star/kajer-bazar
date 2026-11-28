@@ -318,7 +318,82 @@ private val englishUiText = mapOf(
     "কমিউনিটি পোস্ট রিপোর্ট" to "Community Post Report",
     "রিপোর্ট জমা হয়নি।" to "Report was not submitted.",
     "পাঠানো হচ্ছে…" to "Sending…",
-    "রিপোর্ট পাঠান" to "Submit Report"
+    "রিপোর্ট পাঠান" to "Submit Report",
+"Supabase সংযোগ পরীক্ষা হচ্ছে…" to "Checking Supabase connection…",
+    "প্রকাশিত কাজ লোড হচ্ছে…" to "Loading published jobs…",
+    "এখনো কোনো কাজ প্রকাশিত হয়নি।" to "No jobs have been published yet.",
+    "প্রকাশিত কাজ দেখুন।" to "View published jobs.",
+    "আগের অ্যাকাউন্টে আবার প্রবেশ করা হয়েছে।" to "Your previous account session has been restored.",
+    "আগের লগইন সেশনের মেয়াদ শেষ। প্রয়োজন হলে আবার লগইন করুন।" to "Your previous login session has expired. Log in again if needed.",
+    "আগের সেশন যাচাই করা যায়নি। ইন্টারনেট পেলে আবার চেষ্টা করুন।" to "The previous session could not be verified. Please try again when connected to the internet.",
+    "ছবি আপলোড করতে আবার লগইন করুন।" to "Log in again to upload a photo.",
+    "শুধু JPG, PNG অথবা WebP ছবি নির্বাচন করুন।" to "Select a JPG, PNG or WebP image only.",
+    "ছবিটি পড়া যায়নি।" to "The image could not be read.",
+    "ছবির আকার ৩ MB-এর মধ্যে হতে হবে।" to "The image must be 3 MB or smaller.",
+    "প্রোফাইল ছবি আপলোড হয়েছে। সংরক্ষণ করুন।" to "Profile photo uploaded. Save your changes.",
+    "ছবি আপলোড হয়নি।" to "Photo was not uploaded.",
+    "অতিথি ব্যবহারকারী" to "Guest User",
+    "অ্যাডমিন" to "Admin",
+    "কাজদাতা" to "Employer",
+    "কর্মী" to "Worker",
+    "অতিথি" to "Guest",
+    "আবেদন পাওয়া যায়নি।" to "No applications found.",
+    "কাজের তালিকা পাওয়া যায়নি।" to "Job list not found.",
+    "পেজ" to "Page",
+    "অ্যাপ রক্ষণাবেক্ষণ চলছে। কিছু সুবিধা সাময়িকভাবে সীমিত থাকতে পারে।" to "The app is under maintenance. Some features may be temporarily limited.",
+    "কী ভাবছেন? কাজের খবর, অভিজ্ঞতা বা ছবি শেয়ার করুন" to "What's on your mind? Share job updates, experiences or photos.",
+    "এটি কাজের বাজারের নিজস্ব প্রচার ব্যানার; বাইরের পেইড বিজ্ঞাপন এখনো চালু নয়।" to "This is a Kajer Bazar promotional banner; external paid ads are not enabled yet.",
+    "কাজটি সংরক্ষিত হয়েছে।" to "Job saved.",
+    "সংরক্ষিত তালিকা থেকে সরানো হয়েছে।" to "Removed from saved jobs.",
+    "কাজ সংরক্ষণ করা যায়নি।" to "Could not save the job.",
+    "★ সংরক্ষিত — সরাতে চাপ দিন" to "★ Saved — tap to remove",
+    "☆ কাজটি সংরক্ষণ করুন" to "☆ Save this job",
+    "নিরাপত্তা: কাউকে OTP, পাসওয়ার্ড, ব্যাংক তথ্য বা অগ্রিম টাকা দেবেন না। কাজের শর্ত যাচাই করুন।" to "Safety: Never share your OTP, password or bank details, or pay advance fees. Verify the job terms.",
+    "নিরাপত্তার জন্য অ্যাপ বন্ধ করলে আবার লগইন করতে হতে পারে।" to "For security, you may need to log in again after closing the app.",
+    "মোবাইল নম্বর পরিবর্তন করতে পারেন。" to "You can change your mobile number.",
+    "ইমেইল ও তথ্য পরিবর্তন করতে পারেন।" to "You can change your email and account details.",
+    "পূর্ণ নাম ২ থেকে ১০০ অক্ষরের মধ্যে লিখুন।" to "Enter a full name between 2 and 100 characters.",
+    "ভূমিকা অনুযায়ী প্রোফাইল আপডেট হয়নি।" to "The profile could not be updated for this account role.",
+    "কাজের বাজার • সংস্করণ 1.2" to "Kajer Bazar • Version 1.2",
+    "অ্যাকাউন্ট ডিলিট করলে প্রোফাইল, কাজ ও আবেদন-সংক্রান্ত ব্যক্তিগত তথ্য মুছে যাবে। পেমেন্ট রেকর্ড থাকলে আগে সহায়তা নিতে হবে।" to "Deleting your account will remove your profile and personal information related to jobs and applications. Contact support first if payment records exist.",
+    "এটি ফিরিয়ে আনা যাবে না। আপনার প্রোফাইল, পোস্ট করা কাজ, আবেদন ও সংশ্লিষ্ট ব্যক্তিগত তথ্য মুছে যাবে। কোনো পেমেন্ট রেকর্ড থাকলে সুরক্ষার কারণে ডিলিট বন্ধ হবে এবং সহায়তায় যোগাযোগ করতে হবে।" to "This cannot be undone. Your profile, job posts, applications and related personal information will be deleted. If payment records exist, deletion will be blocked for security; contact support.",
+    "আবেদন প্রত্যাহার করা হয়েছে।" to "Application withdrawn.",
+    "এই কর্মীকে নির্বাচন করলে অন্য জমা দেওয়া আবেদনগুলো প্রত্যাখ্যাত হবে।" to "Selecting this worker will reject the other submitted applications.",
+    "কর্মী নির্বাচন হয়েছে। অন্য আবেদনগুলো প্রত্যাখ্যাত হয়েছে।" to "Worker selected. Other applications have been rejected.",
+    "কর্মী নির্বাচন করা যায়নি।" to "Could not select the worker.",
+    "তালিকা লোড হচ্ছে…" to "Loading list…",
+    "কোনো ব্যবহারকারী পাওয়া যায়নি।" to "No users found.",
+    "সম্পাদনা / অ্যাকাউন্ট নিয়ন্ত্রণ" to "Edit / Account Controls",
+    "ব্যবহারকারী সম্পাদনা" to "Edit User",
+    "যোগাযোগ নম্বর" to "Contact Number",
+    "অ্যাকাউন্টের অবস্থা" to "Account Status",
+    "সক্রিয়" to "Active",
+    "স্থগিত" to "Suspended",
+    "অ্যাডমিন অ্যাকাউন্ট এই তালিকা থেকে পরিবর্তন করা যায় না।" to "Admin accounts cannot be changed from this list.",
+    "ব্যবহারকারীর তথ্য সংরক্ষণ হয়েছে।" to "User information saved.",
+    "ব্যবহারকারীর তথ্য সংরক্ষণ হয়নি।" to "User information could not be saved.",
+    "ফিরে যান" to "Go Back",
+    "নিরাপত্তার জন্য অ্যাডমিন যাচাইয়ের পর কাজদাতা সুবিধা চালু হবে।" to "Employer features will be enabled after admin verification for security.",
+    "প্রতিষ্ঠান/কাজদাতার নাম" to "Organization / Employer Name",
+    "যোগাযোগকারীর নাম" to "Contact Person's Name",
+    "অতিরিক্ত তথ্য (ঐচ্ছিক)" to "Additional Information (Optional)",
+    "আবেদন জমা হয়েছে। অ্যাডমিন যাচাইয়ের পর সিদ্ধান্ত জানানো হবে।" to "Application submitted. The decision will be shared after admin review.",
+    "জমা হচ্ছে…" to "Submitting…",
+    "আবেদন জমা দিন" to "Submit Application",
+    "জমা দিলে কাজটি সরাসরি প্রকাশ হবে না; অ্যাডমিন পর্যালোচনায় যাবে।" to "Submitting will not publish the job immediately; it will be sent for admin review.",
+    "কাজের শিরোনাম" to "Job Title",
+    "কাজের বিস্তারিত (কমপক্ষে ২০ অক্ষর)" to "Job Description (at least 20 characters)",
+    "কর্মীর মজুরি (টাকা)" to "Worker's Wage (BDT)",
+    "কর্মী পুরো মজুরি পাবেন। নিয়োগদাতা পরে এর অতিরিক্ত ১০% কমিশন দেবেন।" to "The worker receives the full wage. The employer pays an additional 10% commission later.",
+    "সব তথ্য সঠিকভাবে পূরণ করুন। শিরোনাম ৫-১২০ এবং বিস্তারিত ২০-৫০০০ অক্ষর হতে হবে।" to "Complete all fields correctly. The title must be 5–120 characters and the description 20–5,000 characters.",
+    "কাজটি অ্যাডমিন পর্যালোচনার জন্য জমা হয়েছে।" to "The job has been submitted for admin review.",
+    "কাজ পোস্ট করা যায়নি।" to "Could not post the job.",
+    "পর্যালোচনায় পাঠান" to "Submit for Review",
+    "ভিডিও সর্বোচ্চ ৫০ MB হতে হবে।" to "Video must be 50 MB or smaller.",
+    "ছবি সর্বোচ্চ ৮ MB হতে হবে।" to "Photo must be 8 MB or smaller.",
+    "এটি ব্যক্তিগত ভিডিও কল রুমের লিংক (Jitsi Meet)—পাবলিক লাইভ সম্প্রচার নয়। কল করতে লগইন লাগবে; অপর পক্ষকে একই লিংক পাঠান।" to "This is a private video call room link (Jitsi Meet), not a public livestream. Log in to call and share the same link with the other person.",
+    "কাজের বাজারের একটি পোস্ট" to "A post from Kajer Bazar",
+    "নিরাপত্তা বা অনুপযুক্ত পোস্টের রিপোর্ট সাপোর্ট টিমের কাছে জমা হবে।" to "Reports about unsafe or inappropriate posts will be sent to the support team."
 )
 
 private fun translateKajerBazarUiText(value: String, language: String): String {
@@ -337,6 +412,20 @@ private fun translateKajerBazarUiText(value: String, language: String): String {
         value.startsWith("অপেক্ষমাণ কাজ: ") -> "Pending Jobs: " + value.removePrefix("অপেক্ষমাণ কাজ: ")
         value.startsWith("কাজদাতা আবেদন: ") -> "Employer Applications: " + value.removePrefix("কাজদাতা আবেদন: ")
         value.startsWith("ব্যবহারকারী পরিচালনা (") -> "Manage Users (" + value.substringAfter("ব্যবহারকারী পরিচালনা (")
+        value.startsWith("সংরক্ষিত কাজ দেখুন (") -> "View Saved Jobs (" + value.substringAfter("সংরক্ষিত কাজ দেখুন (")
+        value.startsWith("মোবাইল: ") -> "Mobile: " + value.removePrefix("মোবাইল: ")
+        value.startsWith("ভূমিকা: ") -> "Role: " + value.removePrefix("ভূমিকা: ")
+        value.startsWith("আবেদন: ") -> "Application: " + value.removePrefix("আবেদন: ")
+        value.startsWith("কাজের ধরন: ") -> "Type of Work: " + value.removePrefix("কাজের ধরন: ")
+        value.startsWith("অভিজ্ঞতা: ") -> "Experience: " + value.removePrefix("অভিজ্ঞতা: ")
+        value.startsWith("কাজের সময়: ") -> "Availability: " + value.removePrefix("কাজের সময়: ")
+        value.startsWith("প্রতিষ্ঠান: ") -> "Organization: " + value.removePrefix("প্রতিষ্ঠান: ")
+        value.startsWith("প্রত্যাশিত মজুরি: ") -> "Expected Wage: " + value.removePrefix("প্রত্যাশিত মজুরি: ")
+        value.startsWith("কাজের নাম: ") -> "Job Title: " + value.removePrefix("কাজের নাম: ")
+        value.startsWith("জেলা: ") -> "District: " + value.removePrefix("জেলা: ")
+        value.startsWith("উপজেলা: ") -> "Upazila: " + value.removePrefix("উপজেলা: ")
+        value.startsWith("অভিজ্ঞতা ") -> "Experience " + value.removePrefix("অভিজ্ঞতা ")
+        value.startsWith("দক্ষতা ") -> "Skills " + value.removePrefix("দক্ষতা ")
         else -> value
     }
 }
