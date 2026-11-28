@@ -1,0 +1,28 @@
+{
+  "project_info": {
+    "project_number": "56913597159",
+    "project_id": "kajer-bazar-6e304",
+    "storage_bucket": "kajer-bazar-6e304.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:56913597159:android:eb5e7a1cdc16a237fb8842",
+        "android_client_info": {
+          "package_name": "com.kajerbazar.app"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcPgtnA1hC2jUuHq7A0fsd16MnQpd_Lp4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
