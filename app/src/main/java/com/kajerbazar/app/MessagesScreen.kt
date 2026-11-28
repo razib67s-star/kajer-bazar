@@ -1,5 +1,7 @@
 package com.kajerbazar.app
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -22,6 +25,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var people by remember { mutableStateOf<List<MessageRepository.Person>>(emptyList()) }
     var messages by remember { mutableStateOf<List<MessageRepository.Message>>(emptyList()) }
     var selectedPerson by remember { mutableStateOf<MessageRepository.Person?>(null) }
@@ -29,6 +33,43 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
     var draft by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val auth = token
+        val uid = userId
+        val peer = selectedPerson
+        if (uri != null && auth != null && uid != null && peer != null) {
+            scope.launch {
+                loading = true
+                error = ""
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                val bytes = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: error("ছবিটি পড়া যায়নি।")
+                }.getOrElse {
+                    error = it.message ?: "ছবি পড়া যায়নি।"
+                    loading = false
+                    return@launch
+                }
+                val uploaded = MessageRepository.uploadChatImage(auth, uid, bytes, mime)
+                if (uploaded.isSuccess) {
+                    val imageBody = MessageRepository.IMAGE_MESSAGE_PREFIX + uploaded.getOrThrow()
+                    val sent = MessageRepository.send(auth, uid, peer.id, imageBody)
+                    if (sent.isSuccess) {
+                        val refreshed = MessageRepository.thread(auth, uid, peer.id)
+                        if (refreshed.isSuccess) {
+                            messages = messages.filterNot {
+                                (it.senderId == uid && it.receiverId == peer.id) ||
+                                    (it.senderId == peer.id && it.receiverId == uid)
+                            } + refreshed.getOrNull().orEmpty()
+                            MessageRepository.markRead(auth, uid, peer.id)
+                        }
+                    } else error = sent.exceptionOrNull()?.message ?: "ছবির বার্তা পাঠানো যায়নি।"
+                } else error = uploaded.exceptionOrNull()?.message ?: "ছবি আপলোড হয়নি।"
+                loading = false
+            }
+        }
+    }
 
     fun refreshInbox() {
         val auth = token
@@ -123,8 +164,18 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                 singleLine = true, label = { Text("নাম, জেলা বা উপজেলা দিয়ে খুঁজুন") })
             Text("সাম্প্রতিক কথোপকথন", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             val threads = MessageRepository.buildThreads(messages, people, userId)
+            val filteredThreads = threads.filter { thread ->
+                search.isBlank() || listOf(thread.person.name, thread.person.district, thread.person.upazila,
+                    thread.lastMessage.body.removePrefix(MessageRepository.IMAGE_MESSAGE_PREFIX))
+                    .any { it.contains(search.trim(), ignoreCase = true) }
+            }
+            val totalUnread = threads.sumOf { it.unreadCount }
+            if (totalUnread > 0) {
+                Text("অপঠিত মেসেজ: $totalUnread", color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold)
+            }
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            threads.forEach { thread ->
+            filteredThreads.forEach { thread ->
                 Card(onClick = {
                     selectedPerson = thread.person
                     refreshThread(thread.person)
@@ -134,7 +185,8 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                         PersonAvatar(thread.person)
                         Column(Modifier.weight(1f)) {
                             Text(thread.person.name, fontWeight = FontWeight.Bold)
-                            Text(thread.lastMessage.body, maxLines = 1, style = MaterialTheme.typography.bodySmall)
+                            Text(if (thread.lastMessage.body.startsWith(MessageRepository.IMAGE_MESSAGE_PREFIX)) "📷 ছবি"
+                                else thread.lastMessage.body, maxLines = 1, style = MaterialTheme.typography.bodySmall)
                         }
                         if (thread.unreadCount > 0) {
                             Badge { Text(thread.unreadCount.toString()) }
@@ -197,7 +249,15 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (message.senderId == userId) Color(0xFFE4F0FF) else Color(0xFFF0F1F3))
                             .padding(horizontal = 13.dp, vertical = 9.dp)) {
-                            Text(message.body)
+                            if (message.body.startsWith(MessageRepository.IMAGE_MESSAGE_PREFIX)) {
+                                AsyncImage(
+                                    model = message.body.removePrefix(MessageRepository.IMAGE_MESSAGE_PREFIX),
+                                    contentDescription = "চ্যাটে পাঠানো ছবি",
+                                    modifier = Modifier.widthIn(max = 260.dp).heightIn(max = 280.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else Text(message.body)
                             Text(message.createdAt.take(16).replace("T", " "),
                                 style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                         }
@@ -205,7 +265,10 @@ fun MessagesScreen(token: String?, userId: String?, onLogin: () -> Unit) {
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                IconButton(onClick = { imagePicker.launch("image/*") }, enabled = !loading) {
+                    Text("📷", style = MaterialTheme.typography.titleLarge)
+                }
                 OutlinedTextField(draft, { draft = it.take(4000) }, Modifier.weight(1f),
                     placeholder = { Text("বার্তা লিখুন…") }, maxLines = 4)
                 Button(enabled = draft.isNotBlank() && !loading, onClick = {
