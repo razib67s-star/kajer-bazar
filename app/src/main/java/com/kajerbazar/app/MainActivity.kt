@@ -251,6 +251,19 @@ fun KajerBazarApp() {
     }
     val mainListState = androidx.compose.foundation.lazy.rememberLazyListState()
     var viewedProfileId by remember { mutableStateOf<String?>(null) }
+    var viewedProfile by remember { mutableStateOf<MarketplaceRepository.Profile?>(null) }
+    var publicProfileLoading by remember { mutableStateOf(false) }
+    LaunchedEffect(selectedPage, viewedProfileId, accessToken) {
+        val token = accessToken
+        val profileId = viewedProfileId
+        if (selectedPage == "publicProfile" && token != null && !profileId.isNullOrBlank()) {
+            publicProfileLoading = true
+            viewedProfile = MarketplaceRepository.getProfile(token, profileId).getOrNull()
+            publicProfileLoading = false
+        } else if (selectedPage != "publicProfile") {
+            viewedProfile = null
+        }
+    }
     BackHandler(enabled = true) {
         when {
             showLanguageDialog -> showLanguageDialog = false
@@ -547,8 +560,63 @@ fun KajerBazarApp() {
                         onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
                 }
                 if (selectedPage == "publicProfile" && viewedProfileId != null) item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ব্যবহারকারীর প্রোফাইল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.extraLarge,
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                        ) {
+                            Column {
+                                Box(
+                                    Modifier.fillMaxWidth().height(132.dp).background(
+                                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                            colors = listOf(Color(0xFF123B70), Color(0xFF2F80B7), Color(0xFFB8D9F2))
+                                        )
+                                    ),
+                                    contentAlignment = androidx.compose.ui.Alignment.BottomStart
+                                ) {
+                                    Text("কাজের বাজার প্রোফাইল", Modifier.padding(16.dp),
+                                        color = Color.White, fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleLarge)
+                                }
+                                Row(
+                                    Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Box(
+                                        Modifier.size(76.dp).clip(CircleShape).background(Color(0xFFE7EEF7)),
+                                        contentAlignment = androidx.compose.ui.Alignment.Center
+                                    ) {
+                                        val avatar = viewedProfile?.avatarUrl.orEmpty()
+                                        if (avatar.isNotBlank()) {
+                                            AsyncImage(avatar, contentDescription = "প্রোফাইল ছবি",
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                                        } else Icon(Icons.Default.Person, null, Modifier.size(42.dp), tint = Blue)
+                                    }
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text(
+                                            viewedProfile?.fullName?.ifBlank { "ব্যবহারকারী" }
+                                                ?: if (publicProfileLoading) "প্রোফাইল লোড হচ্ছে…" else "ব্যবহারকারীর প্রোফাইল",
+                                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            viewedProfile?.workType?.ifBlank { "কাজের বাজার সদস্য" } ?: "কাজের বাজার সদস্য",
+                                            color = Blue, style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        val area = listOfNotNull(
+                                            viewedProfile?.district?.takeIf { it.isNotBlank() },
+                                            viewedProfile?.upazila?.takeIf { it.isNotBlank() }
+                                        ).joinToString(", ")
+                                        if (area.isNotBlank()) Text("📍 $area", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                                if (viewedProfile?.skills?.isNotBlank() == true) {
+                                    Text("দক্ষতা: ${viewedProfile!!.skills}", Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                                        style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
                         ProfileFollowCard(token = accessToken, viewerId = userId, profileId = viewedProfileId, onLogin = { showLogin = true })
                         OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                             Text("← নিউজ ফিডে ফিরে যান")
@@ -873,15 +941,6 @@ fun KajerBazarApp() {
                                     ProfileInfoRow("মোবাইল", currentProfile.contactPhone.ifBlank { currentProfile.authPhone })
                                     ProfileInfoRow("বর্তমান ঠিকানা", currentProfile.currentAddress)
                                     ProfileInfoRow("স্থায়ী ঠিকানা", currentProfile.permanentAddress)
-                                    if (currentProfile.role == "worker") {
-                                        MediaPostsSection(
-                                            token = accessToken,
-                                            userId = userId,
-                                            onLogin = { showLogin = true },
-                                            profileUserId = userId,
-                                            onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile" }
-                                        )
-                                    }
                                     Spacer(Modifier.height(6.dp))
                                     if (currentProfile.role == "worker") {
                                         OutlinedButton(onClick = { showEmployerForm = true }, modifier = Modifier.fillMaxWidth()) {
