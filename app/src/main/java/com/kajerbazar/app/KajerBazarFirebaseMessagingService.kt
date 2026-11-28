@@ -38,9 +38,12 @@ class KajerBazarFirebaseMessagingService : FirebaseMessagingService() {
                     .apply { description = "কাজ, মেসেজ ও সামাজিক আপডেট" }
             )
         }
+        val deepLink = data["deep_link"]
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            data = data["deep_link"]?.let { android.net.Uri.parse(it) }
+            if (!deepLink.isNullOrBlank()) {
+                setData(android.net.Uri.parse(deepLink))
+            }
         }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
