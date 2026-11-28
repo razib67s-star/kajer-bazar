@@ -14,11 +14,14 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Person
@@ -431,11 +434,8 @@ fun KajerBazarApp() {
             topBar = {
                 TopAppBar(
                     title = {
-                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text("কাজের বাজার", fontWeight = FontWeight.ExtraBold, color = Blue)
-                            Text("মানুষ • কাজ • কমিউনিটি", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        Text("কাজের বাজার", fontWeight = FontWeight.ExtraBold, color = Blue,
+                            style = MaterialTheme.typography.headlineSmall)
                     },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -443,14 +443,14 @@ fun KajerBazarApp() {
                         }
                     },
                     actions = {
+                        IconButton(onClick = { if (accessToken == null) showLogin = true else selectedPage = "media" }) {
+                            Icon(Icons.Default.Add, contentDescription = "নতুন পোস্ট", tint = Color.Black)
+                        }
                         IconButton(onClick = { selectedPage = "people"; scope.launch { mainListState.animateScrollToItem(0) } }) {
-                            Icon(Icons.Default.Search, contentDescription = "মানুষ খুঁজুন", tint = Blue)
+                            Icon(Icons.Default.Search, contentDescription = "খুঁজুন", tint = Color.Black)
                         }
                         IconButton(onClick = { selectedPage = "messages"; scope.launch { mainListState.animateScrollToItem(0) } }) {
-                            Icon(Icons.Default.Email, contentDescription = "মেসেজ", tint = Blue)
-                        }
-                        TextButton(onClick = { showLogin = true }) {
-                            Text(if (signedInAccount == null) "লগইন" else "অ্যাকাউন্ট", color = Blue)
+                            Icon(Icons.Default.Email, contentDescription = "মেসেজ", tint = Color.Black)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White, titleContentColor = Blue)
@@ -597,9 +597,44 @@ fun KajerBazarApp() {
                     }
                 }
                 item {
-                    Text("নিউজ ফিড", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("মানুষের পোস্ট, ছবি, ভিডিও, লেখা, লাইক, মন্তব্য ও শেয়ার দেখুন।", style = MaterialTheme.typography.bodyMedium)
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.size(42.dp).clip(CircleShape).background(Color(0xFFE6EEF9)), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = Blue)
+                            }
+                            Text("কী ভাবছেন? কাজের খবর, অভিজ্ঞতা বা ছবি শেয়ার করুন", modifier = Modifier.weight(1f), color = Color.DarkGray)
+                            IconButton(onClick = { if (accessToken == null) showLogin = true else selectedPage = "media" }) {
+                                Icon(Icons.Default.Add, contentDescription = "পোস্ট তৈরি", tint = Blue)
+                            }
+                        }
+                        HorizontalDivider()
+                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            TextButton(onClick = { if (accessToken == null) showLogin = true else selectedPage = "media" }) { Text("📷 ছবি") }
+                            TextButton(onClick = { if (accessToken == null) showLogin = true else selectedPage = "media" }) { Text("🎥 ভিডিও") }
+                            TextButton(onClick = { selectedPage = "jobs" }) { Text("💼 কাজ") }
+                        }
+                    }
                 }
+                item {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val tiles = listOf(
+                            Triple("কাজের খবর", Color(0xFFDBEAFE), "jobs"),
+                            Triple("কর্মী খুঁজুন", Color(0xFFD1FAE5), "people"),
+                            Triple("কমিউনিটি", Color(0xFFFCE7F3), "community"),
+                            Triple("ভিডিও", Color(0xFFEDE9FE), "media")
+                        )
+                        tiles.forEach { tile ->
+                            Card(Modifier.width(126.dp).height(104.dp), colors = CardDefaults.cardColors(containerColor = tile.second),
+                                onClick = { selectedPage = tile.third; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                                Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                                    Text(when(tile.third) { "jobs" -> "💼"; "people" -> "👥"; "community" -> "🌐"; else -> "🎬" }, style = MaterialTheme.typography.headlineSmall)
+                                    Text(tile.first, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 item {
                     MediaHubScreen(token = accessToken, userId = userId, onLogin = { showLogin = true },
                         onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
