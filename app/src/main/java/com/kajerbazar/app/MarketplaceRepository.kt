@@ -168,6 +168,25 @@ object MarketplaceRepository {
         }
     }
 
+    suspend fun registerPushToken(token: String, userId: String, fcmToken: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(userId.isNotBlank()) { "ব্যবহারকারীর পরিচয় পাওয়া যায়নি।" }
+            require(fcmToken.isNotBlank()) { "Firebase নোটিফিকেশন টোকেন পাওয়া যায়নি।" }
+            val body = JSONObject()
+                .put("user_id", userId)
+                .put("fcm_token", fcmToken)
+                .put("platform", "android")
+            val (status, response) = request(
+                "/rest/v1/device_push_tokens?on_conflict=user_id,fcm_token",
+                token,
+                "POST",
+                body,
+                "resolution=merge-duplicates,return=minimal"
+            )
+            if (status !in 200..299) error("নোটিফিকেশন ডিভাইস নিবন্ধন হয়নি ($status): $response")
+        }
+    }
+
     suspend fun getPublishedJobsPublic(): Result<List<Job>> = withContext(Dispatchers.IO) {
         runCatching {
             val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa&status=eq.published&order=created_at.desc&limit=50"
