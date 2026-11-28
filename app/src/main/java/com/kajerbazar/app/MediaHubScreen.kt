@@ -28,6 +28,14 @@ import java.util.UUID
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
+private data class NewsFeedEntry(
+    val createdAt: String,
+    val kind: String,
+    val job: MarketplaceRepository.Job? = null,
+    val post: MediaRepository.Post? = null,
+    val pagePost: CommunityPagesRepository.PagePost? = null
+)
+
 @Composable
 fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenProfile: (String) -> Unit = {}) {
     val context = LocalContext.current
@@ -37,6 +45,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     var busy by remember { mutableStateOf(false) }
     var posts by remember { mutableStateOf<List<MediaRepository.Post>>(emptyList()) }
     var jobs by remember { mutableStateOf<List<MarketplaceRepository.Job>>(emptyList()) }
+    var pagePosts by remember { mutableStateOf<List<CommunityPagesRepository.PagePost>>(emptyList()) }
     var liveRoomUrl by remember { mutableStateOf<String?>(null) }
     var selectedFilter by remember { mutableStateOf("সব") }
 
@@ -45,13 +54,16 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
             busy = true
             val result = MediaRepository.feed(token, userId)
             val jobResult = MarketplaceRepository.getPublishedJobsPublic()
+            val pageResult = CommunityPagesRepository.pages(token, userId)
+            val pageFeedResult = CommunityPagesRepository.latestPageFeed(token, pageResult.getOrNull().orEmpty())
             posts = result.getOrNull().orEmpty()
             jobs = jobResult.getOrNull().orEmpty()
+            pagePosts = pageFeedResult.getOrNull().orEmpty()
             status = when {
-                result.isFailure && jobResult.isFailure -> "নিউজ ফিড ও চাকরির পোস্ট লোড হয়নি।"
+                result.isFailure && jobResult.isFailure && pageFeedResult.isFailure -> "নিউজ ফিড লোড হয়নি।"
                 result.isFailure -> result.exceptionOrNull()?.message ?: "পোস্ট লোড হয়নি।"
-                jobResult.isFailure -> "পোস্ট দেখা যাচ্ছে; চাকরির পোস্ট লোড হয়নি।"
-                else -> "নতুন পোস্ট ও প্রকাশিত চাকরির বিজ্ঞপ্তি দেখানো হচ্ছে"
+                jobResult.isFailure || pageFeedResult.isFailure -> "কিছু পোস্ট দেখা যাচ্ছে; কয়েকটি বিভাগ লোড হয়নি।"
+                else -> "সব বিভাগের সাম্প্রতিক পোস্ট সময় অনুযায়ী সাজানো হয়েছে।"
             }
             busy = false
         }
@@ -100,15 +112,21 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
     }
 
     LaunchedEffect(token, userId) { refresh() }
-    val visiblePosts = posts.filter { post ->
+    val entries = buildList {
+        jobs.forEach { add(NewsFeedEntry(it.createdAt, "job", job = it)) }
+        posts.forEach { add(NewsFeedEntry(it.createdAt, it.mediaType, post = it)) }
+        pagePosts.forEach { add(NewsFeedEntry(it.createdAt, "page", pagePost = it)) }
+    }.filter { entry ->
         when (selectedFilter) {
-            "ছবি" -> post.mediaType == "image"
-            "ভিডিও" -> post.mediaType == "video"
-            "লেখা" -> post.mediaType == "text"
-            "কাজ" -> false
+            "ছবি" -> entry.kind == "image"
+            "ভিডিও" -> entry.kind == "video"
+            "লেখা" -> entry.kind == "text"
+            "কাজ" -> entry.kind == "job"
+            "পেজ" -> entry.kind == "page"
             else -> true
         }
-    }
+    }.sortedByDescending { it.createdAt }
+
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -174,7 +192,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("সব", "কাজ", "লেখা", "ছবি", "ভিডিও").forEach { filter ->
+            listOf("সব", "কাজ", "লেখা", "ছবি", "ভিডিও", "পেজ").forEach { filter ->
                 FilterChip(selected = selectedFilter == filter, onClick = { selectedFilter = filter },
                     label = { Text(filter) })
             }
@@ -182,26 +200,21 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Text(status, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        val showJobCards = selectedFilter == "সব" || selectedFilter == "কাজ"
-        val showMediaCards = selectedFilter != "কাজ"
-        val visibleJobs = if (selectedFilter == "কাজ") jobs else jobs.take(8)
-        if (showJobCards && visibleJobs.isNotEmpty()) {
-            Text(if (selectedFilter == "কাজ") "প্রকাশিত চাকরির বিজ্ঞপ্তি" else "সাম্প্রতিক চাকরি",
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            visibleJobs.forEach { job ->
-                JobNewsFeedCard(job = job, token = token, onLogin = onLogin)
+        if (entries.isNotEmpty()) {
+            entries.forEach { entry ->
+                when (entry.kind) {
+                    "job" -> entry.job?.let { JobNewsFeedCard(job = it, token = token, onLogin = onLogin) }
+                    "page" -> entry.pagePost?.let { CommunityPageFeedCard(it) }
+                    else -> entry.post?.let { MediaPostCard(it, token, userId, onLogin, onOpenProfile) { refresh() } }
+                }
             }
-        }
-        if (showMediaCards) visiblePosts.forEach { post ->
-            MediaPostCard(post, token, userId, onLogin, onOpenProfile) { refresh() }
-        }
-        if (!busy && visiblePosts.isEmpty() && (!showJobCards || visibleJobs.isEmpty())) {
+        } else if (!busy) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(22.dp),
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("📰", style = MaterialTheme.typography.headlineMedium)
-                    Text(if (selectedFilter == "কাজ") "এখনো কোনো চাকরির বিজ্ঞপ্তি নেই" else if (posts.isEmpty() && jobs.isEmpty()) "এখনো কোনো পোস্ট নেই" else "এই বিভাগে পোস্ট পাওয়া যায়নি",
+                    Text(if (selectedFilter == "সব") "এখনো কোনো পোস্ট নেই" else "এই বিভাগে এখনো কোনো পোস্ট নেই",
                         fontWeight = FontWeight.SemiBold)
                     Text("আপনার কাজের খবর, অভিজ্ঞতা বা ছবি দিয়ে প্রথম পোস্টটি করুন।",
                         style = MaterialTheme.typography.bodySmall,
@@ -282,6 +295,38 @@ private fun JobNewsFeedCard(job: MarketplaceRepository.Job, token: String?, onLo
                     }
                 }
             ) { Text(if (applying) "আবেদন পাঠানো হচ্ছে…" else "আবেদন করুন") }
+        }
+    }
+}
+
+@Composable
+private fun CommunityPageFeedCard(post: CommunityPagesRepository.PagePost) {
+    val context = LocalContext.current
+    Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(Modifier.size(42.dp), shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Box(contentAlignment = androidx.compose.ui.Alignment.Center) { Text("▣") }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(post.pageName.ifBlank { "কমিউনিটি পেজ" }, fontWeight = FontWeight.Bold)
+                    Text(post.createdAt.take(16).replace("T", " "),
+                        style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                }
+                Text("পেজ পোস্ট", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+            Text(post.body, style = MaterialTheme.typography.bodyLarge)
+            HorizontalDivider()
+            TextButton(onClick = {
+                val share = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, post.pageName + ": " + post.body)
+                }
+                context.startActivity(Intent.createChooser(share, "পেজ পোস্ট শেয়ার করুন"))
+            }, modifier = Modifier.fillMaxWidth()) { Text("↗ শেয়ার") }
         }
     }
 }
