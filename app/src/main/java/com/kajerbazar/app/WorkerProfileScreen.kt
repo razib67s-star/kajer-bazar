@@ -30,7 +30,9 @@ fun WorkerProfileScreen(
     isOwnProfile: Boolean,
     onEdit: () -> Unit,
     onLogin: () -> Unit,
-    onOpenProfile: (String) -> Unit = {}
+    onOpenProfile: (String) -> Unit = {},
+    onChangeCoverPhoto: () -> Unit = {},
+    coverUrl: String = profile.coverUrl
 ) {
     var selectedTab by remember(profileId) { mutableStateOf("পোস্ট") }
     val area = listOf(profile.upazila, profile.district).filter { it.isNotBlank() }.joinToString(", ")
@@ -44,9 +46,29 @@ fun WorkerProfileScreen(
                         Brush.linearGradient(listOf(Color(0xFF0B5B50), Color(0xFF168B78), Color(0xFFB8E5D8)))
                     )
                 ) {
+                    if (coverUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = coverUrl,
+                            contentDescription = "কর্মীর কভার ফটো",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(Modifier.fillMaxSize().background(Color(0x55000000)))
+                    }
                     Column(Modifier.align(Alignment.BottomStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("কাজের বাজার", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         Text("কর্মী পরিচিতি", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                    if (isOwnProfile) {
+                        FilledTonalButton(
+                            onClick = onChangeCoverPhoto,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color(0xDDFFFFFF), contentColor = Color(0xFF173F37))
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text("কভার ফটো পরিবর্তন")
+                        }
                     }
                 }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
