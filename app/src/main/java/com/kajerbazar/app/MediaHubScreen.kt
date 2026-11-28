@@ -122,8 +122,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
                     Surface(Modifier.size(44.dp), shape = CircleShape,
                         color = MaterialTheme.colorScheme.primaryContainer) {
                         Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
-                            Icon(Icons.Default.Person, contentDescription = "আপনার প্রোফাইল",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text("👤", style = MaterialTheme.typography.titleLarge)
                         }
                     }
                     OutlinedTextField(value = caption, onValueChange = { caption = it.take(500) },
