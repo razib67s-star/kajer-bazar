@@ -152,3 +152,55 @@ private fun WorkerInfo(label: String, value: String) {
         Text(value.ifBlank { "তথ্য যোগ করা হয়নি" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
     }
 }
+
+
+@Composable
+fun PublicWorkerProfileLoader(
+    token: String?,
+    viewerId: String?,
+    profileId: String?,
+    onLogin: () -> Unit,
+    onOpenProfile: (String) -> Unit
+) {
+    var profile by remember(profileId) { mutableStateOf<MarketplaceRepository.Profile?>(null) }
+    var loading by remember(profileId) { mutableStateOf(true) }
+    var error by remember(profileId) { mutableStateOf("") }
+    LaunchedEffect(token, profileId) {
+        if (token.isNullOrBlank() || profileId.isNullOrBlank()) {
+            loading = false
+            error = "প্রোফাইল দেখতে লগইন করুন।"
+        } else {
+            loading = true
+            val result = MarketplaceRepository.getProfile(token, profileId)
+            profile = result.getOrNull()
+            error = result.exceptionOrNull()?.message.orEmpty()
+            loading = false
+        }
+    }
+    when {
+        loading -> LinearProgressIndicator(Modifier.fillMaxWidth())
+        profile == null -> Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("প্রোফাইল লোড হয়নি", fontWeight = FontWeight.Bold)
+                Text(error.ifBlank { "এই প্রোফাইলটি পাওয়া যায়নি।" })
+                Button(onClick = onLogin) { Text("লগইন করুন") }
+            }
+        }
+        profile?.role == "worker" -> WorkerProfileScreen(
+            profile = profile!!,
+            profileId = profileId,
+            viewerId = viewerId,
+            token = token,
+            isOwnProfile = profileId == viewerId,
+            onEdit = {},
+            onLogin = onLogin,
+            onOpenProfile = onOpenProfile
+        )
+        else -> Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(profile?.fullName.orEmpty(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("এই প্রোফাইলটি কর্মী প্রোফাইল নয়।")
+            }
+        }
+    }
+}
