@@ -532,15 +532,15 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
                         onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile"; scope.launch { mainListState.animateScrollToItem(0) } })
                 }
                 if (selectedPage == "publicProfile" && viewedProfileId != null) item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ব্যবহারকারীর প্রোফাইল", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        ProfileFollowCard(token = accessToken, viewerId = userId, profileId = viewedProfileId, onLogin = { showLogin = true })
-                        OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
-                            Text("← নিউজ ফিডে ফিরে যান")
-                        }
-                        MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true },
-                            profileUserId = viewedProfileId,
-                            onOpenProfile = { viewedProfileId = it })
+                    PublicWorkerProfileLoader(
+                        token = accessToken,
+                        viewerId = userId,
+                        profileId = viewedProfileId,
+                        onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it }
+                    )
+                    OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
+                        Text("← নিউজ ফিডে ফিরে যান")
                     }
                 }
                 if (selectedPage == "activity") item {
@@ -750,7 +750,7 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
                     }
                 }
                 }
-                if (selectedPage == "profile" && profile != null) {
+                if (selectedPage == "profile" && profile != null && profile?.role != "worker") {
                     item {
                         val currentProfile = profile!!
                         val isEmployerProfile = currentProfile.role == "employer"
@@ -911,8 +911,37 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
                         }
                     }
                 }
-                if (selectedPage == "profile" && profile != null) item {
-                    MediaPostsSection(token = accessToken, userId = userId, onLogin = { showLogin = true })
+                if (selectedPage == "profile" && profile?.role == "worker") item {
+                    val currentProfile = profile!!
+                    WorkerProfileScreen(
+                        profile = currentProfile,
+                        profileId = userId,
+                        viewerId = userId,
+                        token = accessToken,
+                        isOwnProfile = true,
+                        onEdit = {
+                            profileFullName = currentProfile.fullName
+                            profileDistrict = currentProfile.district
+                            profileUpazila = currentProfile.upazila
+                            profileContactPhone = currentProfile.contactPhone.ifBlank { currentProfile.authPhone }
+                            profileCurrentAddress = currentProfile.currentAddress
+                            profilePermanentAddress = currentProfile.permanentAddress
+                            profileWorkType = currentProfile.workType
+                            profileSkills = currentProfile.skills
+                            profileAvatarUrl = currentProfile.avatarUrl
+                            profileOrganizationName = currentProfile.organizationName
+                            profileOrganizationType = currentProfile.organizationType
+                            profileOrganizationDetails = currentProfile.organizationDetails
+                            profileContactPerson = currentProfile.contactPerson
+                            profileExperience = currentProfile.experience
+                            profileAvailability = currentProfile.availability
+                            profileExpectedWage = currentProfile.expectedWage
+                            profilePortfolio = currentProfile.portfolio
+                            showProfileForm = true
+                        },
+                        onLogin = { showLogin = true },
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile" }
+                    )
                 }
                 if (selectedPage == "profile" && profile == null) item {
                     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
