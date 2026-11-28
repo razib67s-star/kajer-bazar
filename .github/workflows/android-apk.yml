@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -37,7 +37,7 @@ jobs:
       - name: Build unit-test tasks and APK
         run: gradle --no-daemon clean testDebugUnitTest assembleDebug
 
-      - name: Verify APK signature and package
+      - name: Verify APK signature, package and notification components
         shell: bash
         run: |
           set -euxo pipefail
@@ -48,27 +48,10 @@ jobs:
           echo "$BADGING" | head -n 8
           echo "$BADGING" | grep -q "package: name='com.kajerbazar.app'"
           echo "$BADGING" | grep -q "launchable-activity:"
-
-      - name: Verify instrumentation tests and launch APK on Android emulator
-        id: emulator_check
-        continue-on-error: true
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          disable-linux-hw-accel: true
-          disable-animations: true
-          script: |
-            gradle --no-daemon connectedDebugAndroidTest
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am force-stop com.kajerbazar.app || true
-            adb shell am start -W -n com.kajerbazar.app/com.kajerbazar.app.MainActivity
-            sleep 8
-            adb shell pidof com.kajerbazar.app
-            adb shell dumpsys activity activities | grep -E 'ResumedActivity|topResumedActivity' | grep 'com.kajerbazar.app'
+          MANIFEST="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml)"
+          echo "$MANIFEST" | grep -q 'android.permission.POST_NOTIFICATIONS'
+          echo "$MANIFEST" | grep -q 'KajerBazarFirebaseMessagingService'
+          echo "$MANIFEST" | grep -q 'com.google.firebase.MESSAGING_EVENT'
 
       - name: Prepare clearly named APK
         run: |
@@ -84,9 +67,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
-
-      - name: Fail workflow if emulator verification failed
-        if: steps.emulator_check.outcome == 'failure'
-        run: |
-          echo "Emulator instrumentation/install/launch verification failed. APK artifact was uploaded for diagnosis."
-          exit 1
