@@ -308,6 +308,46 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
         }
     }
 
+    val coverPhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val token = accessToken
+            val id = userId
+            if (token == null || id == null) {
+                jobMessage = "কভার ফটো পরিবর্তন করতে আবার লগইন করুন।"
+            } else {
+                busy = true
+                scope.launch {
+                    val mime = appContext.contentResolver.getType(uri).orEmpty()
+                    val extension = when (mime.lowercase()) {
+                        "image/png" -> "png"
+                        "image/webp" -> "webp"
+                        "image/jpeg", "image/jpg" -> "jpg"
+                        else -> ""
+                    }
+                    val result = runCatching {
+                        require(extension.isNotBlank()) { "শুধু JPG, PNG অথবা WebP ছবি নির্বাচন করুন।" }
+                        val bytes = withContext(Dispatchers.IO) {
+                            appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                                ?: error("ছবিটি পড়া যায়নি।")
+                        }
+                        require(bytes.isNotEmpty() && bytes.size <= 5 * 1024 * 1024) { "কভার ছবির আকার ৫ MB-এর মধ্যে হতে হবে।" }
+                        val url = MarketplaceRepository.uploadCoverPhoto(token, id, bytes, mime, extension)
+                        val saved = MarketplaceRepository.updateCoverPhoto(token, url)
+                        if (!saved.isSuccess) throw (saved.exceptionOrNull() ?: IllegalStateException("কভার ছবি সংরক্ষণ হয়নি।"))
+                        url
+                    }
+                    busy = false
+                    if (result.isSuccess) {
+                        profile = profile?.copy(coverUrl = result.getOrThrow())
+                        jobMessage = "কভার ফটো পরিবর্তন ও সংরক্ষণ হয়েছে।"
+                    } else {
+                        jobMessage = result.exceptionOrNull()?.message ?: "কভার ফটো পরিবর্তন হয়নি।"
+                    }
+                }
+            }
+        }
+    }
+
     MaterialTheme(colorScheme = lightColorScheme(primary = Blue, secondary = Blue)) {
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -940,7 +980,8 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
                             showProfileForm = true
                         },
                         onLogin = { showLogin = true },
-                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile" }
+                        onOpenProfile = { viewedProfileId = it; selectedPage = "publicProfile" },
+                        onChangeCoverPhoto = { if (!busy) coverPhotoPicker.launch("image/*") }
                     )
                 }
                 if (selectedPage == "profile" && profile == null) item {
