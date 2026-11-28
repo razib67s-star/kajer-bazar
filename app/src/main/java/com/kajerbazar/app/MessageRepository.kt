@@ -95,6 +95,44 @@ object MessageRepository {
         }
     }
 
+    suspend fun uploadChatImage(token: String, userId: String, bytes: ByteArray, mimeType: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                require(bytes.isNotEmpty() && bytes.size <= 8 * 1024 * 1024) { "ছবির আকার ৮ MB-এর মধ্যে হতে হবে।" }
+                val extension = when (mimeType.lowercase()) {
+                    "image/jpeg" -> "jpg"
+                    "image/png" -> "png"
+                    "image/webp" -> "webp"
+                    else -> error("শুধু JPG, PNG অথবা WebP ছবি পাঠানো যাবে।")
+                }
+                val path = "$userId/chat-${java.util.UUID.randomUUID()}.$extension"
+                val encoded = path.split("/").joinToString("/") {
+                    URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+                }
+                val conn = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') +
+                    "/storage/v1/object/community-media/$encoded").openConnection() as HttpURLConnection)
+                try {
+                    conn.requestMethod = "POST"
+                    conn.connectTimeout = 20000
+                    conn.readTimeout = 20000
+                    conn.doOutput = true
+                    conn.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                    conn.setRequestProperty("Authorization", "Bearer $token")
+                    conn.setRequestProperty("Content-Type", mimeType)
+                    conn.setRequestProperty("x-upsert", "false")
+                    conn.outputStream.use { it.write(bytes) }
+                    val status = conn.responseCode
+                    val response = (if (status in 200..299) conn.inputStream else conn.errorStream)
+                        ?.bufferedReader()?.use { it.readText() }.orEmpty()
+                    if (status !in 200..299) error("ছবি আপলোড হয়নি ($status): $response")
+                } finally { conn.disconnect() }
+                BuildConfig.SUPABASE_URL.trimEnd('/') +
+                    "/storage/v1/object/public/community-media/$path"
+            }
+        }
+
+    const val IMAGE_MESSAGE_PREFIX = "[[KAJER_BAZAR_IMAGE]]"
+
     suspend fun send(token: String, senderId: String, receiverId: String, body: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
