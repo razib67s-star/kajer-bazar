@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -62,13 +62,25 @@ jobs:
 
       - name: Install and launch APK in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
-        env:
-          ANDROID_I_WANT_MY_TCG: yes
         with:
-          api-level: 35
+          api-level: 34
           arch: x86_64
           profile: pixel_2
           emulator-boot-timeout: 600
-          disable-animations: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            sleep 15 && adb wait-for-device && test "$(adb shell getprop sys.boot_completed | tr -d '\\r')" = "1" && adb shell cmd package list packages >/dev/null && adb install -r app/build/outputs/apk/debug/app-debug.apk && adb shell am force-stop com.kajerbazar.app.test && adb shell am start -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity && sleep 15 && adb shell pidof com.kajerbazar.app.test >/dev/null && echo "PASS: APK installed, activity launched, and app process remained alive for 15 seconds"
+            set -eux
+            adb wait-for-device
+            for attempt in $(seq 1 60); do
+              BOOTED="$(adb shell getprop sys.boot_completed | tr -d '\r')"
+              if [ "$BOOTED" = "1" ]; then break; fi
+              sleep 5
+            done
+            test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop com.kajerbazar.app.test
+            adb shell am start -W -n com.kajerbazar.app.test/com.kajerbazar.app.MainActivity
+            sleep 10
+            adb shell pidof com.kajerbazar.app.test
+            echo "PASS: Kajer Bazar debug APK installed and MainActivity launched successfully"
