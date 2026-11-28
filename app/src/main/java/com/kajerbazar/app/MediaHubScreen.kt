@@ -105,6 +105,7 @@ fun MediaHubScreen(token: String?, userId: String?, onLogin: () -> Unit, onOpenP
             "ছবি" -> post.mediaType == "image"
             "ভিডিও" -> post.mediaType == "video"
             "লেখা" -> post.mediaType == "text"
+            "কাজ" -> false
             else -> true
         }
     }
