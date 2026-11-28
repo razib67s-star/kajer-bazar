@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.google.firebase.messaging.FirebaseMessaging
 
 private val Blue = Color(0xFF145DA0)
 
@@ -273,6 +274,28 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
     var jobUpazila by remember { mutableStateOf("") }
     var jobWage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    LaunchedEffect(accessToken, userId) {
+        val authToken = accessToken
+        val currentUserId = userId
+        if (!authToken.isNullOrBlank() && !currentUserId.isNullOrBlank()) {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val fcmToken = task.result
+                    scope.launch {
+                        val registration = MarketplaceRepository.registerPushToken(authToken, currentUserId, fcmToken)
+                        if (registration.isFailure) {
+                            android.util.Log.w(
+                                "KajerBazarPush",
+                                registration.exceptionOrNull()?.message ?: "Push token registration failed"
+                            )
+                        }
+                    }
+                } else {
+                    android.util.Log.w("KajerBazarPush", "Firebase token retrieval failed", task.exception)
+                }
+            }
+        }
+    }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var selectedPage by remember { mutableStateOf("home") }
     var viewedProfileId by remember { mutableStateOf<String?>(null) }
