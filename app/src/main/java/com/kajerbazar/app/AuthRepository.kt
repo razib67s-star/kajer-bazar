@@ -181,6 +181,56 @@ object AuthRepository {
         }
     }
 
+    suspend fun requestPasswordReset(emailInput: String): AuthResult = withContext(Dispatchers.IO) {
+        val email = emailInput.trim().lowercase()
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
+        }
+        try {
+            val redirect = java.net.URLEncoder.encode("kajerbazar://auth/recovery", "UTF-8")
+            val (status, json) = request("/auth/v1/recover?redirect_to=$redirect", JSONObject().put("email", email))
+            if (status in 200..299) {
+                AuthResult(true, "পাসওয়ার্ড রিসেটের লিংক আপনার ইমেইলে পাঠানো হয়েছে। ইমেইল খুলে লিংকে চাপ দিন।", email = email)
+            } else {
+                val msg = json.optString("msg", json.optString("message", json.optString("error_description", "")))
+                AuthResult(false, when (status) {
+                    429 -> "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।"
+                    else -> "রিসেট ইমেইল পাঠানো যায়নি ($status)। $msg"
+                })
+            }
+        } catch (_: Exception) {
+            AuthResult(false, "রিসেট ইমেইল পাঠাতে সার্ভারে সংযোগ করা যায়নি।")
+        }
+    }
+
+    suspend fun updatePassword(accessToken: String, newPassword: String): AuthResult = withContext(Dispatchers.IO) {
+        if (accessToken.isBlank()) return@withContext AuthResult(false, "রিসেট সেশন পাওয়া যায়নি। আবার রিসেট লিংক নিন।")
+        if (newPassword.length < 8) return@withContext AuthResult(false, "নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।")
+        try {
+            val connection = (URL(BuildConfig.SUPABASE_URL.trimEnd('/') + "/auth/v1/user").openConnection() as HttpURLConnection)
+            try {
+                connection.requestMethod = "PUT"
+                connection.connectTimeout = 15000
+                connection.readTimeout = 15000
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                connection.setRequestProperty("Authorization", "Bearer $accessToken")
+                connection.outputStream.use { it.write(JSONObject().put("password", newPassword).toString().toByteArray(Charsets.UTF_8)) }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (status in 200..299) AuthResult(true, "পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।")
+                else {
+                    val message = runCatching { JSONObject(response).optString("message") }.getOrNull().orEmpty()
+                    AuthResult(false, "পাসওয়ার্ড পরিবর্তন করা যায়নি ($status)। $message")
+                }
+            } finally { connection.disconnect() }
+        } catch (_: Exception) {
+            AuthResult(false, "পাসওয়ার্ড পরিবর্তনের সার্ভারে সংযোগ করা যায়নি।")
+        }
+    }
+
     suspend fun signInEmail(emailInput: String, password: String): AuthResult = withContext(Dispatchers.IO) {
         val email = emailInput.trim().lowercase()
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) return@withContext AuthResult(false, "সঠিক ইমেইল ঠিকানা লিখুন।")
