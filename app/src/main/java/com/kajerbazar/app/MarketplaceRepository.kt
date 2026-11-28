@@ -17,7 +17,7 @@ object MarketplaceRepository {
         val contactPerson: String, val experience: String, val availability: String,
         val expectedWage: String, val portfolio: String
     )
-    data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long)
+    data class Job(val id: String, val title: String, val description: String, val category: String, val district: String, val upazila: String, val wagePaisa: Long, val createdAt: String = "")
     data class AdminProfile(
         val id: String, val fullName: String, val phone: String, val contactPhone: String,
         val district: String, val upazila: String, val role: String, val accountStatus: String
@@ -189,7 +189,7 @@ object MarketplaceRepository {
 
     suspend fun getPublishedJobsPublic(): Result<List<Job>> = withContext(Dispatchers.IO) {
         runCatching {
-            val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa&status=eq.published&order=created_at.desc&limit=50"
+            val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa,created_at&status=eq.published&order=created_at.desc&limit=50"
             val (status, body) = request(path, null)
             if (status !in 200..299) error("কাজের তালিকা পাওয়া যায়নি ($status)")
             val rows = JSONArray(body)
@@ -198,7 +198,7 @@ object MarketplaceRepository {
                 Job(
                     row.getString("id"), row.getString("title"), row.getString("description"),
                     row.getString("category"), row.getString("district"), row.optString("upazila"),
-                    row.getLong("agreed_wage_paisa")
+                    row.getLong("agreed_wage_paisa"), row.optString("created_at")
                 )
             }
         }
@@ -206,7 +206,7 @@ object MarketplaceRepository {
 
     suspend fun getPublishedJobs(token: String): Result<List<Job>> = withContext(Dispatchers.IO) {
         runCatching {
-            val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa&status=eq.published&order=created_at.desc&limit=50"
+            val path = "/rest/v1/jobs?select=id,title,description,category,district,upazila,agreed_wage_paisa,created_at&status=eq.published&order=created_at.desc&limit=50"
             val (status, body) = request(path, token)
             if (status !in 200..299) error("কাজের তালিকা পাওয়া যায়নি ($status)")
             val rows = JSONArray(body)
@@ -215,7 +215,7 @@ object MarketplaceRepository {
                 Job(
                     row.getString("id"), row.getString("title"), row.getString("description"),
                     row.getString("category"), row.getString("district"), row.optString("upazila"),
-                    row.getLong("agreed_wage_paisa")
+                    row.getLong("agreed_wage_paisa"), row.optString("created_at")
                 )
             }
         }
