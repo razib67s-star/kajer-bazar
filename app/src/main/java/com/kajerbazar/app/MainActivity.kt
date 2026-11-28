@@ -1077,10 +1077,10 @@ fun KajerBazarApp() {
                             Text("নিরাপত্তার জন্য অ্যাপ বন্ধ করলে আবার লগইন করতে হতে পারে।")
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { if (!busy) { usePhoneOtp = true; authMessage = ""; otpSent = false } }) {
+                                TextButton(onClick = { if (!busy) { usePhoneOtp = true; authMessage = ""; otpSent = false; emailOtpSent = false; emailOtp = "" } }) {
                                     Text(if (usePhoneOtp) "✓ মোবাইল OTP" else "মোবাইল OTP")
                                 }
-                                TextButton(onClick = { if (!busy) { usePhoneOtp = false; otpSent = false; authMessage = "" } }) {
+                                TextButton(onClick = { if (!busy) { usePhoneOtp = false; otpSent = false; otp = ""; authMessage = "" } }) {
                                     Text(if (!usePhoneOtp) "✓ ইমেইল" else "ইমেইল")
                                 }
                             }
@@ -1093,7 +1093,16 @@ fun KajerBazarApp() {
                             } else {
                                 OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !busy && !emailOtpSent, label = { Text("ইমেইল ঠিকানা") }, placeholder = { Text("name@example.com") }, singleLine = true)
                                 if (isSignUp && emailOtpSent) {
-                                    OutlinedTextField(value = emailOtp, onValueChange = { emailOtp = it.filter(Char::isDigit).take(6) }, enabled = !busy, label = { Text("Gmail-এ পাওয়া ৬ সংখ্যার OTP") }, singleLine = true)
+                                    OutlinedTextField(value = emailOtp, onValueChange = { emailOtp = it.filter(Char::isDigit).take(6) }, enabled = !busy, label = { Text("ইমেইলে পাওয়া ৬ সংখ্যার OTP") }, singleLine = true)
+                                    TextButton(enabled = !busy, onClick = {
+                                        busy = true
+                                        scope.launch {
+                                            val resend = AuthRepository.resendEmailOtp(email)
+                                            busy = false
+                                            authMessage = resend.message
+                                        }
+                                    }) { Text("OTP আবার পাঠান") }
+                                    Text("ইনবক্সে না পেলে Spam/Junk ফোল্ডার দেখুন।", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 } else {
                                     OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !busy, label = { Text("পাসওয়ার্ড") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
                                 }
