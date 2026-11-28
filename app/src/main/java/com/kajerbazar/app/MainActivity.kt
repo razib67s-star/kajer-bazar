@@ -577,7 +577,30 @@ fun KajerBazarApp(recoveryLink: String? = null, onRecoveryLinkHandled: () -> Uni
                         viewerId = userId,
                         profileId = viewedProfileId,
                         onLogin = { showLogin = true },
-                        onOpenProfile = { viewedProfileId = it }
+                        onOpenProfile = { viewedProfileId = it },
+                        onEditOwnProfile = {
+                            profile?.let { own ->
+                                profileFullName = own.fullName
+                                profileDistrict = own.district
+                                profileUpazila = own.upazila
+                                profileContactPhone = own.contactPhone.ifBlank { own.authPhone }
+                                profileCurrentAddress = own.currentAddress
+                                profilePermanentAddress = own.permanentAddress
+                                profileWorkType = own.workType
+                                profileSkills = own.skills
+                                profileAvatarUrl = own.avatarUrl
+                                profileOrganizationName = own.organizationName
+                                profileOrganizationType = own.organizationType
+                                profileOrganizationDetails = own.organizationDetails
+                                profileContactPerson = own.contactPerson
+                                profileExperience = own.experience
+                                profileAvailability = own.availability
+                                profileExpectedWage = own.expectedWage
+                                profilePortfolio = own.portfolio
+                                showProfileForm = true
+                            }
+                        },
+                        onChangeOwnCoverPhoto = { if (!busy) coverPhotoPicker.launch("image/*") }
                     )
                     OutlinedButton(onClick = { selectedPage = "home"; scope.launch { mainListState.animateScrollToItem(0) } }) {
                         Text("← নিউজ ফিডে ফিরে যান")
