@@ -182,7 +182,9 @@ fun PublicWorkerProfileLoader(
     viewerId: String?,
     profileId: String?,
     onLogin: () -> Unit,
-    onOpenProfile: (String) -> Unit
+    onOpenProfile: (String) -> Unit,
+    onEditOwnProfile: () -> Unit = {},
+    onChangeOwnCoverPhoto: () -> Unit = {}
 ) {
     var profile by remember(profileId) { mutableStateOf<MarketplaceRepository.Profile?>(null) }
     var loading by remember(profileId) { mutableStateOf(true) }
@@ -214,9 +216,10 @@ fun PublicWorkerProfileLoader(
             viewerId = viewerId,
             token = token,
             isOwnProfile = profileId == viewerId,
-            onEdit = {},
+            onEdit = onEditOwnProfile,
             onLogin = onLogin,
-            onOpenProfile = onOpenProfile
+            onOpenProfile = onOpenProfile,
+            onChangeCoverPhoto = onChangeOwnCoverPhoto
         )
         else -> Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
